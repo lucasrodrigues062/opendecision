@@ -55,9 +55,22 @@ if ($ready) {
     Write-Host "  WARN: LocalStack may still be starting..." -ForegroundColor Yellow
 }
 
+# Kill any existing processes on ports 8080 and 5173
+Write-Host ""
+Write-Host "[5] Cleaning up old processes..." -ForegroundColor Blue
+Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue | ForEach-Object {
+    Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
+    Write-Host "  Killed process on port 8080" -ForegroundColor Yellow
+}
+Get-NetTCPConnection -LocalPort 5173 -ErrorAction SilentlyContinue | ForEach-Object {
+    Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
+    Write-Host "  Killed process on port 5173" -ForegroundColor Yellow
+}
+Start-Sleep -Seconds 1
+
 # Start Backend
 Write-Host ""
-Write-Host "[5] Starting Backend..." -ForegroundColor Blue
+Write-Host "[6] Starting Backend..." -ForegroundColor Blue
 $backendCmd = "cd '$PWD'; go run ./cmd/opendecision/"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $backendCmd -WindowStyle Normal
 Write-Host "  OK: Backend window opening" -ForegroundColor Green
@@ -65,7 +78,7 @@ Start-Sleep -Seconds 3
 
 # Start Frontend
 Write-Host ""
-Write-Host "[6] Starting Frontend..." -ForegroundColor Blue
+Write-Host "[7] Starting Frontend..." -ForegroundColor Blue
 $frontendCmd = "cd '$PWD\web'; npm run dev"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCmd -WindowStyle Normal
 Write-Host "  OK: Frontend window opening" -ForegroundColor Green
