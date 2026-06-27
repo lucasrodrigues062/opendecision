@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # LocalStack - simula AWS services localmente (DynamoDB, S3, SQS, etc)
+  localstack:
+    image: localstack/localstack:latest
+    container_name: opendecision-localstack
+    ports:
+      - "4566:4566"           # AWS API gateway
+      - "4571:4571"           # DynamoDB
+    environment:
+      - SERVICES=dynamodb     # apenas DynamoDB por enquanto
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+      - LAMBDA_EXECUTOR=docker
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+    volumes:
+      - "${LOCALSTACK_VOLUME_DIR:-./.localstack}:/tmp/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    profiles:
+      - dynamo
+      - all
+
+  # Redis - cache opcional
+  redis:
+    image: redis:7-alpine
+    container_name: opendecision-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    profiles:
+      - redis
+      - all
+
+  # DynamoDB Admin - UI web para visualizar tabelas (opcional)
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:latest
+    container_name: opendecision-dynamodb-admin
+    ports:
+      - "8001:8001"
+    environment:
+      - DYNAMO_ENDPOINT=http://localstack:4566
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+    depends_on:
+      - localstack
+    profiles:
+      - dynamo
+      - admin
+      - all
+
+volumes:
+  redis_data:
+
+networks:
+  default:
+    name: opendecision-network
+    driver: bridge
