@@ -10,7 +10,7 @@ import PublishModal from './components/modals/PublishModal';
 import TestModal from './components/modals/TestModal';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, CheckCircle2, Plus, FolderOpen, Flask, Rocket } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Plus, FolderOpen, Beaker, Rocket } from 'lucide-react';
 
 function App() {
   const { strategy } = useStrategyStore();
@@ -82,7 +82,7 @@ function App() {
               variant="outline"
               className="border-purple-600/50 text-purple-300 hover:bg-purple-950/30"
             >
-              <Flask className="w-4 h-4 mr-2" />
+              <Beaker className="w-4 h-4 mr-2" />
               Test
             </Button>
             <Button
