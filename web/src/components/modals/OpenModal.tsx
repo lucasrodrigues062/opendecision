@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import { api } from '../../utils/api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import type { StrategyResponse } from '../../types';
 
 interface Props {
@@ -47,42 +51,46 @@ export default function OpenModal({ isOpen, onClose }: Props) {
     onClose();
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96 shadow-xl max-h-[80vh] overflow-y-auto">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Open Strategy</h2>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-slate-900 border-slate-700 max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle className="text-slate-100">Open Strategy</DialogTitle>
+        </DialogHeader>
 
-        {loading && <div className="text-center py-8 text-gray-500">Loading...</div>}
+        {error && (
+          <Alert className="border-red-900/50 bg-red-950/50">
+            <AlertCircle className="h-4 w-4 text-red-500" />
+            <AlertDescription className="text-red-200">{error}</AlertDescription>
+          </Alert>
+        )}
 
-        {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
+        <div className="max-h-[60vh] overflow-y-auto space-y-2">
+          {loading && <div className="text-center py-8 text-slate-400">Loading...</div>}
 
-        {!loading && strategies.length === 0 && !error && <div className="text-center py-8 text-gray-500">No strategies yet</div>}
+          {!loading && strategies.length === 0 && !error && (
+            <div className="text-center py-8 text-slate-500">No strategies yet</div>
+          )}
 
-        <div className="space-y-2">
           {strategies.map((strategy) => (
             <button
               key={strategy.id}
               onClick={() => handleOpen(strategy)}
-              className="w-full p-3 text-left bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded transition"
+              className="w-full p-4 text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition"
             >
-              <div className="font-medium text-gray-900">{strategy.name}</div>
-              <div className="text-xs text-gray-500">{strategy.description}</div>
-              <div className="text-xs text-gray-400 mt-1">{new Date(strategy.created_at).toLocaleDateString()}</div>
+              <div className="font-medium text-slate-100">{strategy.name}</div>
+              <div className="text-sm text-slate-400">{strategy.description}</div>
+              <div className="text-xs text-slate-500 mt-2">{new Date(strategy.created_at).toLocaleDateString()}</div>
             </button>
           ))}
         </div>
 
-        <div className="flex gap-3 justify-end mt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300 transition"
-          >
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} className="border-slate-600 text-slate-100">
             Close
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
