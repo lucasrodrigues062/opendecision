@@ -23,3 +23,102 @@ O projeto utilizará um único repositório, mas isolando rigidamente as respons
 * `/pkg/decisionlib`: Conterá exclusivamente a lógica da Fase 1 (O Motor). Esta pasta deve ser tratada como um pacote de terceiros, sem conhecer nada sobre o resto do repositório.
 * `/cmd/opendecision`: Conterá o `main.go` da Fase 2, que importará localmente o `/pkg/decisionlib`.
 * Inicialmente, focaremos 100% da codificação dentro de `/pkg/decisionlib`.
+
+---
+
+## 5. Status Atual (Atualizado: 2026-06-27)
+
+### ✅ Fase 1: CONCLUÍDA
+
+A biblioteca `decisionlib` foi implementada completamente e testada. Entrega:
+
+**Código Implementado:**
+- `types.go` — AST, Op, Step, PipelineAST, Row
+- `errors.go` — OperationError com contexto de step
+- `evaluator.go` — Wrapper seguro para `antonmedv/expr` com compilação antecipada
+- `filter.go` — Operação filter com expressões booleanas
+- `compute.go` — Operação compute com suporte a dot notation
+- `sort.go` — Operação sort com suporte a múltiplos tipos
+- `runner.go` — Pipeline runner com validação e execução sequencial
+
+**Testes:** 35 testes, 83.5% cobertura, todos passando
+
+**Documentação:**
+- `pkg/decisionlib/README.md` — Overview e exemplos rápidos
+- `CONTRIBUTING.md` — Setup, testes, convenções de código
+- `IMPLEMENTATION_STATUS.md` — Detalhes de marcos alcançados
+- Godoc em 100% das funções/tipos públicos
+- `example.go` — 4 exemplos práticos rodando
+
+**Como Usar:**
+```go
+import "github.com/lucasrodrigues062/opendecision/pkg/decisionlib"
+
+data := []map[string]any{
+    {"name": "Alice", "age": 30},
+    {"name": "Bob", "age": 25},
+}
+
+pipeline := decisionlib.PipelineAST{
+    Steps: []decisionlib.Step{
+        {Op: decisionlib.OpFilter, Expression: "age >= 30"},
+        {Op: decisionlib.OpSort, Property: "age", Direction: "desc"},
+    },
+}
+
+result, err := decisionlib.Run(data, pipeline)
+```
+
+### 📋 Padrões Adotados na Fase 1
+
+**Type Safety:**
+- Todas as type assertions usam `v, ok := ...` pattern
+- Panics são capturados em `defer recover()` em operações críticas
+- Erros retornam tipos específicos (`ErrExpressionFailed`, `ErrTypeMismatch`, etc)
+
+**Expressões:**
+- Compilação antecipada com `expr.Compile()` para performance
+- Sem `eval()` — seguro para dados de usuários
+- Suporta operadores: `+`, `-`, `*`, `/`, `%`, `&&`, `||`, `!`, `>`, `<`, `>=`, `<=`, `==`, `!=`
+
+**Operações:**
+- **Filter:** Remove itens onde expressão == false
+- **Compute:** Cria/altera propriedade com dot notation (ex: `"person.stats.score"`)
+- **Sort:** Ordena por tipo (float64, int, string, bool, nil)
+
+**Pipeline:**
+- Execução **sequencial** de steps
+- Validação antecipada de todos os steps
+- Cada erro inclui: step index, operação, mensagem detalhada
+
+**Testes:**
+- Nomeação: `TestOperationScenario` (ex: `TestFilterComplex`)
+- Cobertura: >80%
+- Edge cases: arrays vazios, nil values, tipos mistos, erros
+
+**Documentação:**
+- Função pública = comentário Godoc obrigatório
+- Exemplos nos comentários para funções principais
+- README.md em cada pacote principal
+
+### 🔮 Próximos Passos (Fase 2)
+
+**Quando começar a Fase 2:**
+1. Verifique que `/pkg/decisionlib` funciona em seu use case
+2. Abra uma issue descrevendo o servidor HTTP desejado
+3. Siga o ROADMAP.md para M2.1+
+
+**Estrutura esperada:**
+```
+cmd/opendecision/
+├── main.go
+├── handlers.go        — Handlers HTTP
+├── repository.go      — Persistência (PostgreSQL)
+├── cache.go           — Cache (Redis)
+└── orchestration.go   — Enriquecimento assíncrono
+```
+
+**Restrições mantidas:**
+- `/pkg/decisionlib` continua 100% pura (zero dependências externas exceto expr)
+- `/cmd/opendecision` importa `decisionlib` localmente
+- Sem breaking changes em `decisionlib` — versione como v1.x após release
