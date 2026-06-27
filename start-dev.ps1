@@ -91,7 +91,3 @@ Write-Host ""
 Write-Host "Stop all services:" -ForegroundColor Yellow
 Write-Host "  docker compose -f docker/docker-compose.yml down" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Enjoy! 🎉" -ForegroundColor Green
-Write-Host ""
-Write-Host "Documentation: QUICKSTART.md" -ForegroundColor Yellow
-Write-Host ""
