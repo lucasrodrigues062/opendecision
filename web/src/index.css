@@ -25,6 +25,10 @@
   --radius: 0.5rem;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
@@ -33,6 +37,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
 }
 
 #root {
@@ -43,44 +49,50 @@ body {
 
 /* React Flow dark theme */
 .react-flow {
-  @apply bg-slate-800;
+  background-color: #1e293b;
 }
 
 .react-flow__viewport {
-  @apply bg-slate-800;
+  background-color: #1e293b;
 }
 
 .react-flow__edge {
-  @apply stroke-slate-600;
+  stroke: #475569;
 }
 
 .react-flow__edge-path {
-  @apply stroke-slate-600;
+  stroke: #475569;
 }
 
 .react-flow__node {
-  @apply bg-slate-900 border border-slate-700 rounded-lg shadow-lg;
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
 }
 
 .react-flow__node-input,
 .react-flow__node-output {
-  @apply bg-slate-900 border border-slate-700;
+  background-color: #0f172a;
+  border: 1px solid #334155;
 }
 
 .react-flow__handle {
-  @apply bg-blue-600;
+  background-color: #2563eb;
 }
 
 .react-flow__handle-connecting {
-  @apply bg-blue-400;
+  background-color: #60a5fa;
 }
 
 .react-flow__connection-path {
-  @apply stroke-blue-500;
+  stroke: #3b82f6;
 }
 
 .react-flow__panel {
-  @apply bg-slate-900 border border-slate-700 rounded-lg;
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
 }
 
 /* Custom scrollbar dark */
@@ -90,23 +102,24 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-slate-800;
+  background-color: #1e293b;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-600 rounded;
+  background-color: #475569;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-500;
+  background-color: #64748b;
 }
 
 /* Smooth transitions */
 button, input, textarea, select {
-  @apply transition-colors;
+  transition: all 0.2s ease-in-out;
 }
 
-/* Remove default focus outline for Tailwind-styled elements */
+/* Remove default focus outline */
 button:focus, input:focus, textarea:focus {
-  @apply outline-none;
+  outline: none;
 }
