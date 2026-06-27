@@ -3,20 +3,22 @@ version: '3.8'
 services:
   # LocalStack - simula AWS services localmente (DynamoDB, S3, SQS, etc)
   localstack:
-    image: localstack/localstack:latest
+    image: localstack/localstack:2.3.0
     container_name: opendecision-localstack
     ports:
       - "4566:4566"           # AWS API gateway
       - "4571:4571"           # DynamoDB
     environment:
       - SERVICES=dynamodb     # apenas DynamoDB por enquanto
-      - DEBUG=1
+      - DEBUG=0
       - DATA_DIR=/tmp/localstack/data
       - LAMBDA_EXECUTOR=docker
       - DOCKER_HOST=unix:///var/run/docker.sock
       - AWS_DEFAULT_REGION=us-east-1
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
+      - DISABLE_MOTO_SERVER=false
+      - LOCALSTACK_HOSTNAME=localhost
     volumes:
       - "${LOCALSTACK_VOLUME_DIR:-./.localstack}:/tmp/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
