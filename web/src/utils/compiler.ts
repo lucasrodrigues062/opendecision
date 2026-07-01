@@ -1,25 +1,41 @@
-import type { PipelineNode, PipelineEdge, Step } from '../types';
+import type { PipelineNode, PipelineEdge, Step, ExecutionGraph, GraphNode, GraphEdge, CompiledPlan } from '../types';
 
 /**
- * Compiles a graph (nodes + edges) into an ordered sequence of steps.
- * Validates node data and builds the execution plan.
+ * Compiles a graph (nodes + edges) into an execution plan.
+ *
+ * If the graph contains condition nodes, it returns a Graph payload.
+ * Otherwise it returns a linear Steps payload for backward compatibility
+ * and maximum performance on the backend.
  */
-export function compileStrategy(nodes: PipelineNode[], edges: PipelineEdge[]): Step[] {
+export function compileStrategy(
+  nodes: PipelineNode[],
+  edges: PipelineEdge[]
+): CompiledPlan {
   if (nodes.length === 0) {
-    return [];
+    return { steps: [] };
   }
 
+  const hasCondition = nodes.some((n) => n.type === 'condition');
+  if (hasCondition) {
+    return { graph: compileGraph(nodes, edges) };
+  }
+
+  return { steps: compileSteps(nodes, edges) };
+}
+
+/**
+ * Compiles a linear pipeline from nodes and edges.
+ */
+function compileSteps(nodes: PipelineNode[], edges: PipelineEdge[]): Step[] {
   // Build adjacency map for topological sort
   const adjacencyMap = new Map<string, string[]>();
   const inDegree = new Map<string, number>();
 
-  // Initialize
   nodes.forEach((node) => {
     adjacencyMap.set(node.id, []);
     inDegree.set(node.id, 0);
   });
 
-  // Build edges
   edges.forEach((edge) => {
     adjacencyMap.get(edge.source)?.push(edge.target);
     inDegree.set(edge.target, (inDegree.get(edge.target) || 0) + 1);
@@ -70,6 +86,77 @@ export function compileStrategy(nodes: PipelineNode[], edges: PipelineEdge[]): S
 }
 
 /**
+ * Compiles an execution graph from nodes and edges.
+ */
+function compileGraph(nodes: PipelineNode[], edges: PipelineEdge[]): ExecutionGraph {
+  const graphNodes: GraphNode[] = [
+    { id: 'start', type: 'start', label: 'Start' },
+  ];
+
+  const graphEdges: GraphEdge[] = [];
+
+  nodes.forEach((node) => {
+    const step = nodeToStep(node);
+
+    if (node.type === 'condition') {
+      graphNodes.push({
+        id: node.id,
+        type: 'condition',
+        label: node.data.label,
+        expression: node.data.conditionExpression || '',
+      });
+    } else if (step) {
+      graphNodes.push({
+        id: node.id,
+        type: 'operation',
+        label: node.data.label,
+        step,
+      });
+    }
+  });
+
+  graphNodes.push({ id: 'end', type: 'end', label: 'End' });
+
+  // Connect start to root nodes (nodes with no incoming edges)
+  const hasIncoming = new Set(edges.map((e) => e.target));
+  nodes.forEach((node) => {
+    if (!hasIncoming.has(node.id)) {
+      graphEdges.push({
+        id: `e_start_${node.id}`,
+        source: 'start',
+        target: node.id,
+      });
+    }
+  });
+
+  // Connect user edges
+  edges.forEach((edge) => {
+    const sourceNode = nodes.find((n) => n.id === edge.source);
+    graphEdges.push({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      source_port: sourceNode?.type === 'condition' ? edge.label || 'true' : undefined,
+      label: edge.label,
+    });
+  });
+
+  // Connect leaf nodes to end
+  const hasOutgoing = new Set(edges.map((e) => e.source));
+  nodes.forEach((node) => {
+    if (!hasOutgoing.has(node.id)) {
+      graphEdges.push({
+        id: `e_${node.id}_end`,
+        source: node.id,
+        target: 'end',
+      });
+    }
+  });
+
+  return { nodes: graphNodes, edges: graphEdges };
+}
+
+/**
  * Converts a single node to a step.
  */
 function nodeToStep(node: PipelineNode): Step | null {
@@ -104,6 +191,40 @@ function nodeToStep(node: PipelineNode): Step | null {
         property: data.sortBy,
         direction: data.sortDirection || 'asc',
       };
+
+    case 'sort_array':
+      if (!data.arrayProperty || !data.arraySortBy) {
+        throw new Error(`SortArray node ${node.id} missing array property or sort by`);
+      }
+      return {
+        op: 'sort_array',
+        property: data.arrayProperty,
+        sort_by: data.arraySortBy,
+        direction: data.arraySortDirection || 'asc',
+      };
+
+    case 'filter_array':
+      if (!data.arrayFilterProperty || !data.arrayFilterExpression) {
+        throw new Error(`FilterArray node ${node.id} missing array property or expression`);
+      }
+      return {
+        op: 'filter_array',
+        property: data.arrayFilterProperty,
+        expression: data.arrayFilterExpression,
+      };
+
+    case 'delete_property':
+      if (!data.deleteProperty) {
+        throw new Error(`DeleteProperty node ${node.id} missing property`);
+      }
+      return {
+        op: 'delete_property',
+        property: data.deleteProperty,
+      };
+
+    case 'condition':
+      // Condition nodes are handled by the graph compiler.
+      return null;
 
     default:
       return null;
@@ -142,6 +263,30 @@ export function validateStep(step: Step): { valid: boolean; error?: string } {
       }
       if (!['asc', 'desc'].includes(step.direction || 'asc')) {
         return { valid: false, error: 'Direction must be asc or desc' };
+      }
+      return { valid: true };
+
+    case 'sort_array':
+      if (!step.property) {
+        return { valid: false, error: 'Array property is required' };
+      }
+      if (!step.sort_by) {
+        return { valid: false, error: 'Sort by property is required' };
+      }
+      return { valid: true };
+
+    case 'filter_array':
+      if (!step.property) {
+        return { valid: false, error: 'Array property is required' };
+      }
+      if (!step.expression) {
+        return { valid: false, error: 'Filter expression is required' };
+      }
+      return { valid: true };
+
+    case 'delete_property':
+      if (!step.property) {
+        return { valid: false, error: 'Property to delete is required' };
       }
       return { valid: true };
 

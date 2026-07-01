@@ -6,205 +6,151 @@ Uma visão estratégica do desenvolvimento do Motor de Decisão de Alta Performa
 
 ## 📋 Visão Geral
 
-O OpenDecision é um Decision Pipeline que processa arrays de dados dinâmicos através de operações declarativas (filter, compute, sort) com performance em milissegundos. O desenvolvimento segue **2 fases estritas** para garantir desacoplamento arquitetural absoluto.
+O OpenDecision evoluiu de um Decision Pipeline linear para uma plataforma de automação de transformação de dados baseada em **grafo de execução**, similar ao n8n, mas focada em transformações declarativas de JSON em alta performance.
 
-**Timeline esperado:** Fase 1 (~4-6 semanas) → Fase 2 (~6-8 semanas)
+O desenvolvimento é dividido em **3 fases**:
+
+1. **Fase 1 — Core Library:** motor puro de operações lineares (`filter`, `compute`, `sort`). ✅
+2. **Fase 2 — Infraestrutura:** servidor HTTP, persistência, cache e frontend embedado. ✅
+3. **Fase 3 — Grafo Genérico:** executor baseado em grafos com branching, loops, joins e transformações aninhadas. 🚧
 
 ---
 
-## 🎯 Fase 1: O Core (Biblioteca Pura)
+## ✅ Fase 1: O Core (Biblioteca Pura)
 
-**Status:** 🟡 Em Desenvolvimento  
-**Duração estimada:** 4-6 semanas  
+**Status:** Concluída  
 **Entrega:** Package `/pkg/decisionlib` com engine de decisão funcional
 
+- Motor de expressões com `antonmedv/expr`
+- Operações `filter`, `compute`, `sort`
+- Pipeline runner linear
+- Testes com cobertura >80%
+
+---
+
+## ✅ Fase 2: Infraestrutura & Servidor
+
+**Status:** Concluída  
+**Entrega:** Servidor HTTP funcional com frontend embedado
+
+- Servidor HTTP com `chi/v5`
+- CRUD de pipelines (`/pipelines`)
+- Execução ad-hoc e por ID (`/execute`, `/pipelines/{id}/execute`)
+- Persistência in-memory e DynamoDB
+- Cache in-memory
+- Frontend React + Vite + Tailwind/Ant Design embedado no binário Go
+
+---
+
+## 🚧 Fase 3: Grafo de Execução Genérico
+
+**Status:** Em planejamento/execução  
+**Entrega:** Motor capaz de executar workflows arbitrários representados como grafos
+
 ### Objetivo
-Construir uma biblioteca Go **sem dependências externas** (exceto `antonmedv/expr`) que:
-- Receba `[]map[string]any` + AST de operações
-- Execute pipeline de filter → compute → sort
-- Retorne dados transformados com performance garantida
+
+Transformar o OpenDecision em um motor genérico de transformação de dados, permitindo:
+
+- Nós com múltiplas saídas (condicionais)
+- Branchs paralelas e joins
+- Operações em arrays aninhados
+- Loops e sub-workflows
+- Comparações, merges, splits e enriquecimento
+
+### Arquitetura Alvo
+
+```
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│   Start     │─────▶│     IF      │      │   Merge     │
+└─────────────┘      │  (condition)│      │             │
+                     └──────┬──────┘      └──────┬──────┘
+                            │                      ▲
+                     true   │   false              │
+                            ▼                      │
+                     ┌─────────────┐      ┌─────────────┐
+                     │  Filter     │      │  Compute    │
+                     │  Pedidos    │      │  Default    │
+                     └──────┬──────┘      └──────┬──────┘
+                            │                      │
+                            └──────────────────────┘
+```
 
 ### Marcos (Milestones)
 
-#### M1.1: Setup e Estrutura Base ✓ (Semana 1)
-- [x] Inicializar repositório com Standard Go Layout
-- [x] Configurar `pkg/decisionlib` com módulos iniciais
-- [x] Definir interfaces principais (Pipeline, Operation, Evaluator)
-- [x] Setup de testes unitários (via `testing`)
+#### M3.1: Modelo de Grafo (Semana 1)
 
-#### M1.2: Motor de Expressões (Semana 1-2)
-- [ ] Integração com `antonmedv/expr`
-- [ ] Wrapper seguro para avaliação de expressões
-- [ ] Suporte a type assertions dinâmicas (sem panics)
-- [ ] Testes de expressões com tipos variados (string, int, float, bool, nil)
+- [x] Definir `Graph` como coleção de `Node` + `Edge`
+- [x] Tipos de nó: `start`, `operation`, `condition`, `end`
+- [x] Múltiplas portas de entrada/saída por nó
+- [x] Persistência do grafo (nodes + edges + metadata)
+- [x] Validação de grafos (ciclos, nós órfãos, portas não conectadas)
 
-#### M1.3: Operação FILTER (Semana 2)
-- [ ] Implementar `FilterOperation` que:
-  - Receba uma expressão (string)
-  - Itere sobre array
-  - Remova itens onde expressão retorna falsy
-  - Retorne array mutado
-- [ ] Suporte a predicados complexos (AND, OR, NOT)
-- [ ] Benchmarks de performance
+#### M3.2: Executor de Grafo (Semana 1-2)
 
-#### M1.4: Operação COMPUTE (Semana 2-3)
-- [ ] Implementar `ComputeOperation` que:
-  - Receba caminho da propriedade (dot notation: `person.age.years`)
-  - Receba expressão matemática/lógica
-  - Crie/altere a propriedade em cada elemento
-  - Retorne array mutado
-- [ ] Suporte a tipos numéricos (int, float)
-- [ ] Suporte a concatenação de strings
-- [ ] Validação de tipos na atribuição
+- [x] Engine de execução baseada em estado
+- [x] Resolver próximo nó a partir das arestas ativas
+- [x] Suporte a execução condicional
+- [ ] Join de múltiplas branches
+- [x] Preservar imutabilidade do input original
 
-#### M1.5: Operação SORT (Semana 3)
-- [ ] Implementar `SortOperation` que:
-  - Receba propriedade para ordenação
-  - Receba direção (ASC/DESC)
-  - Suporte multi-chave (sort by A, then B)
-  - Ordene array dinamicamente
-- [ ] Comparação segura de tipos
-- [ ] Suporte a nulls (first/last)
+#### M3.3: Nó Condicional (IF/ELSE) (Semana 2)
 
-#### M1.6: Pipeline Runner (Semana 3-4)
-- [ ] Implementar `PipelineRunner` que:
-  - Aceite AST de operações em sequência
-  - Execute cada operação mantendo estado
-  - Aplique otimizações (ex: filter antes de sort)
-  - Retorne resultado final
-- [ ] Suporte a múltiplas operações em cadeia
+- [x] Nó com expressão booleana
+- [x] Duas saídas: `true` e `false`
+- [ ] Conexões visualmente rotuladas no React Flow
+- [x] Execução segue apenas a branch ativa
 
-#### M1.7: Type Safety & Error Handling (Semana 4)
-- [ ] Validação de expressões em tempo de parsing
-- [ ] Mensagens de erro descritivas
-- [ ] Recovery de panics internos
-- [ ] Logging estruturado (sem stdlib, apenas erros críticos)
+#### M3.4: Operações Aninhadas (Semana 2-3)
 
-#### M1.8: Otimizações & Benchmarks (Semana 4-5)
-- [ ] Profile com pprof
-- [ ] Otimizações de alocação de memória
-- [ ] Benchmarks comparativos (arrays de 1K, 10K, 100K elementos)
-- [ ] Documentação de guarantees de performance
+- [x] `sort_array` — ordenar arrays dentro de cada item
+- [x] `filter_array` — filtrar arrays aninhados
+- [ ] `map_array` — transformar cada elemento de um array interno
+- [x] `delete_property` — remover campos
+- [ ] `rename_property` — renomear campos
 
-#### M1.9: Documentação & API Publica (Semana 5)
-- [ ] Godoc comments em todas as funções públicas
-- [ ] Exemplos de uso em `examples/` ou testes
-- [ ] README do `/pkg/decisionlib` com tutoriais
-- [ ] Decision Tree de quando usar cada operação
+#### M3.5: Loops e Iterações (Semana 3-4)
 
-#### M1.10: Release v0.1.0-alpha (Semana 5-6)
-- [ ] Tag Git `v0.1.0-alpha`
+- [ ] Nó de loop sobre array
+- [ ] Sub-workflow por iteração
+- [ ] Agregação de resultados do loop
+
+#### M3.6: Joins e Merges (Semana 4)
+
+- [ ] Nó `join` que espera múltiplas branches
+- [ ] Estratégias: `first`, `all`, `any`
+- [ ] Merge de payloads de branches paralelas
+
+#### M3.7: Frontend — Editor de Grafo (Semana 4-5)
+
+- [ ] Nó condicional com portas `true`/`false`
+- [ ] Edges rotuladas
+- [ ] Validação visual do grafo
+- [ ] Nós para `sort_array`, `filter_array`, `map_array`
+- [ ] Preview de execução passo a passo
+
+#### M3.8: Testes e Documentação (Semana 5-6)
+
+- [ ] Testes unitários do executor de grafo
+- [ ] Testes de integração grafos complexos
+- [ ] Documentação de nós disponíveis
+- [ ] Exemplos práticos
+
+#### M3.9: Release v2.0.0 (Semana 6)
+
+- [ ] Tag Git `v2.0.0`
 - [ ] CHANGELOG
-- [ ] Go module versioning
+- [ ] Migração de pipelines lineares para grafos
 
 ---
 
-## 🔧 Fase 2: Infraestrutura & Servidor
+## 🎯 KPIs & Definição de Pronto
 
-**Status:** 🔴 Não Iniciada  
-**Duração estimada:** 6-8 semanas  
-**Entrega:** Servidor HTTP funcional com integração de dados
-
-### Objetivo
-Construir um servidor HTTP que:
-- Expõe a `decisionlib` via API REST
-- Integra-se com Redis (cache de pipelines) e PostgreSQL (persistência)
-- Orquestra I/O assíncrono via Goroutines
-
-### Marcos (Milestones)
-
-#### M2.1: Setup HTTP Server (Semana 1-2)
-- [ ] Framework HTTP (ex: `chi`, `echo`, ou stdlib `net/http`)
-- [ ] Estrutura de rotas e handlers
-- [ ] Middleware de logging, CORS, autenticação básica
-- [ ] JSON encoding/decoding
-
-#### M2.2: API REST (Semana 2-3)
-- [ ] `POST /decisions/execute` — executa pipeline
-- [ ] `GET /decisions` — lista pipelines salvos
-- [ ] `POST /decisions/{id}` — cria novo pipeline
-- [ ] `DELETE /decisions/{id}` — remove pipeline
-- [ ] Validação de input/output
-
-#### M2.3: Integração PostgreSQL (Semana 3-4)
-- [ ] Migrations (schema para `pipelines`, `executions`)
-- [ ] Repository pattern para persistência
-- [ ] Query builders seguros (SQLC ou similar)
-- [ ] Connection pooling
-
-#### M2.4: Integração Redis (Semana 4-5)
-- [ ] Cache de pipelines compilados
-- [ ] Cache de resultados (com TTL)
-- [ ] Invalidação inteligente
-- [ ] Fallback se Redis indisponível
-
-#### M2.5: Nós de Enriquecimento (Semana 5-6)
-- [ ] Execução assíncrona de HTTP calls para enriquecimento
-- [ ] Timeout e retry logic
-- [ ] Circuit breaker pattern
-- [ ] Orquestração com WaitGroup
-
-#### M2.6: Observabilidade (Semana 6-7)
-- [ ] Estrutured logging (ex: slog)
-- [ ] Métricas (ex: Prometheus client)
-- [ ] Tracing distribuído (ex: OpenTelemetry)
-- [ ] Health check endpoints
-
-#### M2.7: Testes de Integração (Semana 7)
-- [ ] Testes end-to-end com PostgreSQL + Redis
-- [ ] Docker Compose para ambiente de teste
-- [ ] Load testing básico
-
-#### M2.8: Release v1.0.0 (Semana 7-8)
-- [ ] Tag Git `v1.0.0`
-- [ ] Docker image
-- [ ] Helm charts (opcional)
-- [ ] Documentação de deployment
-
----
-
-## 📊 Timeline Visual
-
-```
-FASE 1: CORE LIBRARY
-├─ Setup (Semana 1)
-├─ Motor de Expressões (Semana 1-2)
-├─ Filter + Compute + Sort (Semana 2-3)
-├─ Pipeline Runner (Semana 3-4)
-├─ Type Safety + Optimizations (Semana 4-5)
-├─ Documentação (Semana 5)
-└─ Release v0.1.0-alpha (Semana 5-6) ✓ COMPLETE
-
-                    ↓ Desacoplamento Total ↓
-
-FASE 2: INFRAESTRUTURA
-├─ HTTP Server (Semana 1-2)
-├─ API REST (Semana 2-3)
-├─ PostgreSQL (Semana 3-4)
-├─ Redis (Semana 4-5)
-├─ Enriquecimento HTTP (Semana 5-6)
-├─ Observabilidade (Semana 6-7)
-├─ Testes & Load (Semana 7)
-└─ Release v1.0.0 (Semana 7-8)
-```
-
----
-
-## 🎯 KPIs & Definição de Pronto (DoD)
-
-### Fase 1
-- ✅ Cobertura de testes **>80%**
-- ✅ Latência **<5ms** para arrays de 10K elementos
-- ✅ **Zero panics** em type assertions dinâmicas
-- ✅ API pública documentada (Godoc 100%)
-- ✅ Exemplos funcionais para cada operação
-
-### Fase 2
-- ✅ API REST respondendo **<50ms** (p95)
-- ✅ PostgreSQL & Redis **integrados e testados**
-- ✅ **99.9% uptime** em staging
-- ✅ Logs estruturados em todas operações críticas
-- ✅ Documentação de deployment (Docker, K8s)
+### Fase 3
+- ✅ Execução de grafos acíclicos com branching
+- ✅ Operações em arrays aninhados testadas
+- ✅ Cobertura de testes >80% no novo executor
+- ✅ Frontend permite construir grafos condicionais visualmente
+- ✅ Backward compatibility com pipelines lineares (migração automática)
 
 ---
 
@@ -212,21 +158,22 @@ FASE 2: INFRAESTRUTURA
 
 | Risco | Mitigação |
 |-------|-----------|
-| Integração com `expr` complexa | Prototipagem rápida na M1.2, se necessário procurar alternativas |
-| Performance insuficiente em arrays grandes | Profiling contínuo (pprof), otimizações em hot paths |
-| Type assertions dinâmicas causarem panics | Defensive programming, testes exhaustivos de tipos |
-| Complexidade da integração Redis/PostgreSQL | Usar libraries comprovadas (sqlc, redis client oficial) |
+| Complexidade do executor de grafos | Começar com DAGs acíclicos simples |
+| Ciclos infinitos em loops | Limitador de iterações e timeout |
+| Performance com grafos grandes | Execução lazy e caching de nós |
+| Complexidade visual do React Flow | Usar portas customizadas e validação |
 
 ---
 
-## 📝 Próximos Passos
+## 📝 Próximos Passos Imediatos
 
-1. **Criar issue board** no GitHub com tasks de M1.1
-2. **Inicializar módulo Go** (`go mod init github.com/...`)
-3. **Criar estrutura base** de pacotes em `/pkg/decisionlib`
-4. **Começar M1.2** — prototipagem com `antonmedv/expr`
+1. **M3.1** — Criar modelo de grafo em `pkg/decisionlib`
+2. **M3.2** — Implementar executor de grafo básico
+3. **M3.3** — Adicionar nó condicional
+4. **M3.4** — Implementar `sort_array` e `filter_array`
+5. **M3.7** — Atualizar frontend para suportar novo modelo
 
 ---
 
-**Última atualização:** 2026-06-27  
-**Maintainer:** lucas (lucasrodrigues062@gmail.com)
+**Última atualização:** 2026-06-30  
+**Maintainer:** lucas

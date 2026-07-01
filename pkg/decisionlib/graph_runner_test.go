@@ -1,0 +1,93 @@
+package decisionlib
+
+import (
+	"testing"
+)
+
+func TestRunGraphLinear(t *testing.T) {
+	graph := Graph{
+		Nodes: []GraphNode{
+			{ID: "start", Type: GraphNodeStart},
+			{ID: "filter", Type: GraphNodeOperation, Step: &Step{Op: OpFilter, Expression: "age >= 30"}},
+			{ID: "end", Type: GraphNodeEnd},
+		},
+		Edges: []GraphEdge{
+			{ID: "e1", Source: "start", Target: "filter"},
+			{ID: "e2", Source: "filter", Target: "end"},
+		},
+	}
+
+	data := []Row{
+		{"name": "Alice", "age": 30},
+		{"name": "Bob", "age": 25},
+	}
+
+	result, err := RunGraph(data, graph)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(result))
+	}
+
+	if result[0]["name"] != "Alice" {
+		t.Errorf("expected Alice, got %v", result[0]["name"])
+	}
+}
+
+func TestRunGraphConditionTrue(t *testing.T) {
+	graph := Graph{
+		Nodes: []GraphNode{
+			{ID: "start", Type: GraphNodeStart},
+			{ID: "check", Type: GraphNodeCondition, Expression: "age >= 30"},
+			{ID: "keep", Type: GraphNodeOperation, Step: &Step{Op: OpCompute, Property: "status", Expression: `'adult'`}},
+			{ID: "drop", Type: GraphNodeOperation, Step: &Step{Op: OpCompute, Property: "status", Expression: `'minor'`}},
+			{ID: "end", Type: GraphNodeEnd},
+		},
+		Edges: []GraphEdge{
+			{ID: "e1", Source: "start", Target: "check"},
+			{ID: "e2", Source: "check", Target: "keep", SourcePort: "true"},
+			{ID: "e3", Source: "check", Target: "drop", SourcePort: "false"},
+			{ID: "e4", Source: "keep", Target: "end"},
+			{ID: "e5", Source: "drop", Target: "end"},
+		},
+	}
+
+	data := []Row{
+		{"name": "Alice", "age": 30},
+	}
+
+	result, err := RunGraph(data, graph)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(result))
+	}
+
+	if result[0]["status"] != "adult" {
+		t.Errorf("expected status 'adult', got %v", result[0]["status"])
+	}
+}
+
+func TestRunGraphInvalidCycle(t *testing.T) {
+	graph := Graph{
+		Nodes: []GraphNode{
+			{ID: "start", Type: GraphNodeStart},
+			{ID: "a", Type: GraphNodeOperation, Step: &Step{Op: OpCompute, Property: "x", Expression: "1"}},
+			{ID: "end", Type: GraphNodeEnd},
+		},
+		Edges: []GraphEdge{
+			{ID: "e1", Source: "start", Target: "a"},
+			{ID: "e2", Source: "a", Target: "end"},
+			{ID: "e3", Source: "end", Target: "a"},
+		},
+	}
+
+	_, err := RunGraph([]Row{}, graph)
+	if err == nil {
+		t.Fatal("expected error for cyclic graph")
+	}
+}

@@ -18,6 +18,15 @@ const (
 
 	// OpSort orders the array based on a property value.
 	OpSort Op = "sort"
+
+	// OpSortArray sorts an array nested inside each row.
+	OpSortArray Op = "sort_array"
+
+	// OpFilterArray filters an array nested inside each row.
+	OpFilterArray Op = "filter_array"
+
+	// OpDeleteProperty removes a property from each row.
+	OpDeleteProperty Op = "delete_property"
 )
 
 // Step represents a single operation in the pipeline.
@@ -40,6 +49,10 @@ type Step struct {
 	// Valid values: "asc" (default), "desc"
 	// Ignored for filter and compute operations.
 	Direction string `json:"direction,omitempty"`
+
+	// SortBy specifies the property inside a nested array to sort by.
+	// Used only by sort_array operations.
+	SortBy string `json:"sort_by,omitempty"`
 }
 
 // PipelineAST is the abstract syntax tree representing a sequence of operations.

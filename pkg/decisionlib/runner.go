@@ -10,6 +10,9 @@ import "fmt"
 //   - filter: remove items where expression is false
 //   - compute: create/update a property based on an expression
 //   - sort: order items by a property
+//   - sort_array: sort a nested array inside each item
+//   - filter_array: filter a nested array inside each item
+//   - delete_property: remove a property from each item
 //
 // Example:
 //
@@ -58,6 +61,15 @@ func Run(data []Row, ast PipelineAST) ([]Row, error) {
 		case OpSort:
 			current, err = applySort(current, step.Property, step.Direction)
 
+		case OpSortArray:
+			current, err = applySortArray(current, step.Property, step.SortBy, step.Direction)
+
+		case OpFilterArray:
+			current, err = applyFilterArray(current, step.Property, step.Expression)
+
+		case OpDeleteProperty:
+			current, err = applyDeleteProperty(current, step.Property)
+
 		default:
 			err = ErrUnknownOp
 		}
@@ -101,6 +113,30 @@ func validateStep(step Step) error {
 	case OpSort:
 		if step.Property == "" {
 			return fmt.Errorf("sort requires non-empty property")
+		}
+		return nil
+
+	case OpSortArray:
+		if step.Property == "" {
+			return fmt.Errorf("sort_array requires non-empty property")
+		}
+		if step.SortBy == "" {
+			return fmt.Errorf("sort_array requires non-empty sort_by")
+		}
+		return nil
+
+	case OpFilterArray:
+		if step.Property == "" {
+			return fmt.Errorf("filter_array requires non-empty property")
+		}
+		if step.Expression == "" {
+			return fmt.Errorf("filter_array requires non-empty expression")
+		}
+		return nil
+
+	case OpDeleteProperty:
+		if step.Property == "" {
+			return fmt.Errorf("delete_property requires non-empty property")
 		}
 		return nil
 

@@ -1,4 +1,4 @@
-import type { StrategyPayload, StrategyResponse, ExecutionResult, ApiError } from '../types';
+import type { StrategyPayload, StrategyResponse, ExecutionRequest, ExecutionResult, ApiError } from '../types';
 
 // In the embedded build the frontend and API share the same origin.
 // During local development the Vite dev server needs to proxy to the backend.
@@ -91,8 +91,8 @@ export const api = {
   },
 
   // Execute a strategy (ad-hoc or saved)
-  async executeStrategy(steps: any[], data: any[]): Promise<ExecutionResult> {
-    return client.post('/execute', { steps, data });
+  async executeStrategy(request: ExecutionRequest): Promise<ExecutionResult> {
+    return client.post('/execute', request);
   },
 
   // Execute a saved strategy with data

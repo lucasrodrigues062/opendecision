@@ -9,26 +9,27 @@ interface Props {
   id: string;
   data: {
     label: string;
-    sortBy?: string;
-    sortDirection?: 'asc' | 'desc';
+    arrayProperty?: string;
+    arraySortBy?: string;
+    arraySortDirection?: 'asc' | 'desc';
   };
 }
 
-export default function SortNode({ id, data }: Props) {
+export default function SortArrayNode({ id, data }: Props) {
   const { updateNode, deleteNode, selectNode } = useStrategyStore();
-  const hasError = !data.sortBy || data.sortBy.trim() === '';
+  const hasError = !data.arrayProperty || !data.arraySortBy;
 
   return (
     <Card
       size="small"
       onClick={() => selectNode(id)}
-      className="w-56 shadow-lg cursor-pointer border-purple-500/30 bg-slate-900"
+      className="w-56 shadow-lg cursor-pointer border-orange-500/30 bg-slate-900"
       styles={{ body: { padding: 12 } }}
       title={
-        <Space className="text-purple-400">
+        <Space className="text-orange-400">
           <SortAscendingOutlined />
-          <Text strong className="text-purple-400">
-            Sort
+          <Text strong className="text-orange-400">
+            Sort Array
           </Text>
         </Space>
       }
@@ -48,22 +49,31 @@ export default function SortNode({ id, data }: Props) {
       <Space direction="vertical" size="small" className="w-full">
         <div>
           <Text type="secondary" className="text-xs">
+            Array Property
+          </Text>
+          <Input
+            size="small"
+            placeholder="codigos_servico"
+            value={data.arrayProperty || ''}
+            onChange={(e) => updateNode(id, { ...data, arrayProperty: e.target.value })}
+            onClick={(e) => e.stopPropagation()}
+            status={!data.arrayProperty ? 'error' : ''}
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Text type="secondary" className="text-xs">
             Sort By
           </Text>
           <Input
             size="small"
-            placeholder="score"
-            value={data.sortBy || ''}
-            onChange={(e) => updateNode(id, { ...data, sortBy: e.target.value })}
+            placeholder="quantidade"
+            value={data.arraySortBy || ''}
+            onChange={(e) => updateNode(id, { ...data, arraySortBy: e.target.value })}
             onClick={(e) => e.stopPropagation()}
-            status={hasError ? 'error' : ''}
+            status={!data.arraySortBy ? 'error' : ''}
             className="mt-1"
           />
-          {hasError && (
-            <Text type="danger" className="text-xs">
-              Sort property is required
-            </Text>
-          )}
         </div>
         <div>
           <Text type="secondary" className="text-xs">
@@ -71,8 +81,8 @@ export default function SortNode({ id, data }: Props) {
           </Text>
           <Select
             size="small"
-            value={data.sortDirection || 'asc'}
-            onChange={(value) => updateNode(id, { ...data, sortDirection: value })}
+            value={data.arraySortDirection || 'asc'}
+            onChange={(value) => updateNode(id, { ...data, arraySortDirection: value })}
             onClick={(e) => e.stopPropagation()}
             options={[
               { value: 'asc', label: 'Ascending' },
@@ -81,10 +91,15 @@ export default function SortNode({ id, data }: Props) {
             className="w-full mt-1"
           />
         </div>
+        {hasError && (
+          <Text type="danger" className="text-xs">
+            Array property and sort by are required
+          </Text>
+        )}
       </Space>
 
-      <Handle type="target" position={Position.Top} className="!bg-purple-500" />
-      <Handle type="source" position={Position.Bottom} className="!bg-purple-500" />
+      <Handle type="target" position={Position.Top} className="!bg-orange-500" />
+      <Handle type="source" position={Position.Bottom} className="!bg-orange-500" />
     </Card>
   );
 }

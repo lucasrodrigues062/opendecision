@@ -9,6 +9,9 @@ import {
   type Edge,
   type NodeChange,
   type EdgeChange,
+  BaseEdge,
+  EdgeLabelRenderer,
+  getBezierPath,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useStrategyStore } from '../stores/strategyStore';
@@ -16,11 +19,61 @@ import type { PipelineNode, PipelineEdge } from '../types';
 import FilterNode from './nodes/FilterNode';
 import ComputeNode from './nodes/ComputeNode';
 import SortNode from './nodes/SortNode';
+import SortArrayNode from './nodes/SortArrayNode';
+import FilterArrayNode from './nodes/FilterArrayNode';
+import DeletePropertyNode from './nodes/DeletePropertyNode';
+import ConditionNode from './nodes/ConditionNode';
 
 const nodeTypes = {
   filter: FilterNode,
   compute: ComputeNode,
   sort: SortNode,
+  sort_array: SortArrayNode,
+  filter_array: FilterArrayNode,
+  delete_property: DeletePropertyNode,
+  condition: ConditionNode,
+};
+
+// Custom edge that shows a label (used for condition true/false branches).
+function LabeledEdge({ id, sourceX, sourceY, targetX, targetY, label, markerEnd }: any) {
+  const [edgePath] = getBezierPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+  });
+
+  return (
+    <>
+      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} />
+      <EdgeLabelRenderer>
+        {label && (
+          <div
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%)`,
+              left: (sourceX + targetX) / 2,
+              top: (sourceY + targetY) / 2,
+              background: '#1e293b',
+              padding: '2px 8px',
+              borderRadius: 4,
+              fontSize: 10,
+              color: label === 'true' ? '#34d399' : '#f87171',
+              border: '1px solid #334155',
+              pointerEvents: 'all',
+            }}
+            className="nodrag nopan"
+          >
+            {label}
+          </div>
+        )}
+      </EdgeLabelRenderer>
+    </>
+  );
+}
+
+const edgeTypes = {
+  labeled: LabeledEdge,
 };
 
 export default function EditorCanvas() {
@@ -28,8 +81,6 @@ export default function EditorCanvas() {
 
   const handleNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      // Apply React Flow changes to the store nodes.
-      // We use a simple manual application for position/selection/remove changes.
       let next = [...nodes];
 
       changes.forEach((change) => {
@@ -66,10 +117,20 @@ export default function EditorCanvas() {
 
   const handleConnect = useCallback(
     (connection: Connection) => {
-      const newEdges = addEdge(connection, edges as Edge[]);
-      setEdges(newEdges as PipelineEdge[]);
+      const sourceNode = nodes.find((n) => n.id === connection.source);
+      const isConditionSource = sourceNode?.type === 'condition';
+
+      const newEdge: PipelineEdge = {
+        id: `e_${connection.source}-${connection.sourceHandle || 'out'}_${connection.target}-${connection.targetHandle || 'in'}`,
+        source: connection.source!,
+        target: connection.target!,
+        label: isConditionSource ? connection.sourceHandle || 'true' : undefined,
+      };
+
+      const newEdges = addEdge(newEdge as unknown as Edge, edges as unknown as Edge[]);
+      setEdges(newEdges as unknown as PipelineEdge[]);
     },
-    [edges, setEdges]
+    [edges, setEdges, nodes]
   );
 
   const handleNodeClick = (_event: React.MouseEvent, node: { id: string }) => {
@@ -80,12 +141,17 @@ export default function EditorCanvas() {
     <div className="w-full h-full">
       <ReactFlow
         nodes={nodes as any}
-        edges={edges as any}
+        edges={edges.map((e) => ({
+          ...e,
+          type: e.label ? 'labeled' : 'default',
+          markerEnd: { type: 'arrowclosed' },
+        }))}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={handleConnect}
         onNodeClick={handleNodeClick}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         attributionPosition="bottom-left"
@@ -94,10 +160,16 @@ export default function EditorCanvas() {
         <Controls />
         <MiniMap
           nodeColor={(node) => {
-            if (node.type === 'filter') return '#3b82f6';
-            if (node.type === 'compute') return '#10b981';
-            if (node.type === 'sort') return '#a855f7';
-            return '#64748b';
+            const colors: Record<string, string> = {
+              filter: '#3b82f6',
+              compute: '#10b981',
+              sort: '#a855f7',
+              sort_array: '#f97316',
+              filter_array: '#06b6d4',
+              delete_property: '#ef4444',
+              condition: '#eab308',
+            };
+            return colors[node.type || ''] || '#64748b';
           }}
           maskColor="rgba(2, 6, 23, 0.6)"
           className="!bg-card !border-border !rounded-md"

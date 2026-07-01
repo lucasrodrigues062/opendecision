@@ -23,8 +23,8 @@ func (s *Server) handleExecuteAdHoc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(req.Steps) == 0 {
-		writeError(w, http.StatusBadRequest, "steps are required")
+	if len(req.Steps) == 0 && req.Graph == nil {
+		writeError(w, http.StatusBadRequest, "steps or graph are required")
 		return
 	}
 
@@ -66,10 +66,11 @@ func (s *Server) handleExecutePipelineByID(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Execute with saved pipeline's steps
+	// Execute with saved pipeline's steps or graph
 	execReq := executor.ExecuteRequest{
 		Data:  req.Data,
 		Steps: pipeline.Steps,
+		Graph: pipeline.Graph,
 	}
 
 	resp, err := executor.Execute(r.Context(), execReq)

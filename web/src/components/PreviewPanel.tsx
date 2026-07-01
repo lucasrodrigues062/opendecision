@@ -1,71 +1,69 @@
 import { useState } from 'react';
 import { useStrategyStore } from '../stores/strategyStore';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Copy, Check } from 'lucide-react';
+import { Card, Button, Typography, message } from 'antd';
+import { CopyOutlined, CheckOutlined } from '@ant-design/icons';
+
+const { Text } = Typography;
 
 export default function PreviewPanel() {
   const { getCompiledSteps } = useStrategyStore();
   const [copied, setCopied] = useState(false);
 
-  let steps;
+  let compiled: ReturnType<typeof getCompiledSteps> | null = null;
   let error: string | null = null;
   try {
-    steps = getCompiledSteps();
+    compiled = getCompiledSteps();
   } catch (err) {
-    steps = null;
     error = (err as Error).message;
   }
 
   const handleCopy = async () => {
-    if (!steps) return;
-    await navigator.clipboard.writeText(JSON.stringify(steps, null, 2));
+    if (!compiled) return;
+    await navigator.clipboard.writeText(JSON.stringify(compiled, null, 2));
     setCopied(true);
+    message.success('Copied to clipboard');
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const title = compiled && 'graph' in compiled ? 'Compiled Graph' : 'Compiled Pipeline';
+
   return (
-    <div className="space-y-3">
-      <Card className="border border-border bg-card overflow-hidden">
-        <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-          <span className="text-xs font-medium text-muted-foreground">Compiled Pipeline</span>
+    <div className="p-4">
+      <Card
+        size="small"
+        title={title}
+        className="bg-slate-900 border-slate-800"
+        extra={
           <Button
-            variant="ghost"
-            size="sm"
+            type="text"
+            size="small"
+            icon={copied ? <CheckOutlined /> : <CopyOutlined />}
             onClick={handleCopy}
-            disabled={!steps}
-            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+            disabled={!compiled}
           >
-            {copied ? (
-              <>
-                <Check className="w-3.5 h-3.5 mr-1" />
-                Copied
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5 mr-1" />
-                Copy
-              </>
-            )}
+            {copied ? 'Copied' : 'Copy'}
           </Button>
+        }
+      >
+        <div className="bg-slate-950 rounded p-3 overflow-auto max-h-80">
+          {compiled ? (
+            <pre className="text-xs text-slate-200 font-mono whitespace-pre-wrap break-words m-0">
+              {JSON.stringify(compiled, null, 2)}
+            </pre>
+          ) : (
+            <div className="text-center py-8">
+              {error ? (
+                <Text type="danger" className="text-sm">
+                  {error}
+                </Text>
+              ) : (
+                <Text type="secondary" className="text-sm">
+                  Create nodes to see compiled JSON
+                </Text>
+              )}
+            </div>
+          )}
         </div>
-        <CardContent className="p-0">
-          <div className="bg-background/50 p-3 overflow-auto max-h-80">
-            {steps ? (
-              <pre className="text-xs text-foreground font-mono whitespace-pre-wrap break-words">
-                {JSON.stringify(steps, null, 2)}
-              </pre>
-            ) : (
-              <div className="text-muted-foreground text-sm text-center py-8">
-                {error ? (
-                  <span className="text-destructive">{error}</span>
-                ) : (
-                  'Create nodes to see compiled JSON'
-                )}
-              </div>
-            )}
-          </div>
-        </CardContent>
       </Card>
     </div>
   );

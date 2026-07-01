@@ -13,7 +13,8 @@ import (
 type CreatePipelineRequest struct {
 	Name        string             `json:"name"`
 	Description string             `json:"description"`
-	Steps       []decisionlib.Step `json:"steps"`
+	Steps       []decisionlib.Step `json:"steps,omitempty"`
+	Graph       *decisionlib.Graph `json:"graph,omitempty"`
 	Nodes       json.RawMessage    `json:"nodes,omitempty"`
 	Edges       json.RawMessage    `json:"edges,omitempty"`
 }
@@ -44,6 +45,7 @@ func (s *Server) handleCreatePipeline(w http.ResponseWriter, r *http.Request) {
 		Name:        req.Name,
 		Description: req.Description,
 		Steps:       req.Steps,
+		Graph:       req.Graph,
 		Nodes:       req.Nodes,
 		Edges:       req.Edges,
 	}
@@ -119,6 +121,9 @@ func (s *Server) handleUpdatePipeline(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Steps != nil {
 		pipeline.Steps = req.Steps
+	}
+	if req.Graph != nil {
+		pipeline.Graph = req.Graph
 	}
 	if req.Nodes != nil {
 		pipeline.Nodes = req.Nodes

@@ -1,6 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import { Card, Input, Button, Space, Typography } from 'antd';
-import { FilterOutlined, DeleteOutlined } from '@ant-design/icons';
+import { MinusCircleOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useStrategyStore } from '../../stores/strategyStore';
 
 const { Text } = Typography;
@@ -9,25 +9,25 @@ interface Props {
   id: string;
   data: {
     label: string;
-    expression?: string;
+    deleteProperty?: string;
   };
 }
 
-export default function FilterNode({ id, data }: Props) {
+export default function DeletePropertyNode({ id, data }: Props) {
   const { updateNode, deleteNode, selectNode } = useStrategyStore();
-  const hasError = !data.expression || data.expression.trim() === '';
+  const hasError = !data.deleteProperty;
 
   return (
     <Card
       size="small"
       onClick={() => selectNode(id)}
-      className="w-56 shadow-lg cursor-pointer border-blue-500/30 bg-slate-900"
+      className="w-56 shadow-lg cursor-pointer border-red-500/30 bg-slate-900"
       styles={{ body: { padding: 12 } }}
       title={
-        <Space className="text-blue-400">
-          <FilterOutlined />
-          <Text strong className="text-blue-400">
-            Filter
+        <Space className="text-red-400">
+          <MinusCircleOutlined />
+          <Text strong className="text-red-400">
+            Delete Property
           </Text>
         </Space>
       }
@@ -46,25 +46,25 @@ export default function FilterNode({ id, data }: Props) {
     >
       <Space direction="vertical" size="small" className="w-full">
         <Text type="secondary" className="text-xs">
-          Expression
+          Property Path
         </Text>
         <Input
           size="small"
-          placeholder="age >= 30"
-          value={data.expression || ''}
-          onChange={(e) => updateNode(id, { ...data, expression: e.target.value })}
+          placeholder="observacoes or pessoa.nome"
+          value={data.deleteProperty || ''}
+          onChange={(e) => updateNode(id, { ...data, deleteProperty: e.target.value })}
           onClick={(e) => e.stopPropagation()}
           status={hasError ? 'error' : ''}
         />
         {hasError && (
           <Text type="danger" className="text-xs">
-            Expression is required
+            Property path is required
           </Text>
         )}
       </Space>
 
-      <Handle type="target" position={Position.Top} className="!bg-blue-500" />
-      <Handle type="source" position={Position.Bottom} className="!bg-blue-500" />
+      <Handle type="target" position={Position.Top} className="!bg-red-500" />
+      <Handle type="source" position={Position.Bottom} className="!bg-red-500" />
     </Card>
   );
 }

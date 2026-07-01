@@ -10,9 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.3.2",
     "@headlessui/react": "^2.2.10",
     "@types/uuid": "^10.0.0",
     "@xyflow/react": "^12.11.1",
+    "antd": "^6.5.0",
     "autoprefixer": "^10.5.2",
     "axios": "^1.18.1",
     "clsx": "^2.1.1",

@@ -1,15 +1,52 @@
 // Operation types (aligned with decisionlib backend)
-export type OperationType = 'filter' | 'compute' | 'sort';
+export type OperationType =
+  | 'filter'
+  | 'compute'
+  | 'sort'
+  | 'sort_array'
+  | 'filter_array'
+  | 'delete_property'
+  | 'condition';
 
 // Direction for sort operations
 export type SortDirection = 'asc' | 'desc';
 
-// A single operation step
+// A single operation step (linear pipeline)
+// Fields use snake_case to match the Go backend JSON tags.
 export interface Step {
   op: OperationType;
-  expression?: string;      // for filter and compute
-  property?: string;        // for compute (target) and sort (key)
-  direction?: SortDirection; // for sort
+  expression?: string; // for filter, compute and filter_array
+  property?: string; // for compute, sort, sort_array, filter_array, delete_property
+  sort_by?: string; // for sort_array
+  direction?: SortDirection; // for sort and sort_array
+}
+
+// Graph node types (matching decisionlib backend)
+export type GraphNodeType = 'start' | 'end' | 'operation' | 'condition';
+
+// A node in the execution graph
+export interface GraphNode {
+  id: string;
+  type: GraphNodeType;
+  label?: string;
+  step?: Step;
+  expression?: string; // for condition nodes
+}
+
+// An edge in the execution graph
+export interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  source_port?: string; // 'true' | 'false' for condition branches
+  target_port?: string;
+  label?: string;
+}
+
+// Execution graph payload
+export interface ExecutionGraph {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
 }
 
 // Node data stored in React Flow
@@ -26,6 +63,21 @@ export interface NodeData {
   // Sort specific
   sortBy?: string;
   sortDirection?: SortDirection;
+
+  // Sort array specific
+  arrayProperty?: string;
+  arraySortBy?: string;
+  arraySortDirection?: SortDirection;
+
+  // Filter array specific
+  arrayFilterProperty?: string;
+  arrayFilterExpression?: string;
+
+  // Delete property specific
+  deleteProperty?: string;
+
+  // Condition specific
+  conditionExpression?: string;
 
   // UI state
   isValid?: boolean;
@@ -45,6 +97,7 @@ export interface PipelineEdge {
   id: string;
   source: string;
   target: string;
+  label?: string;
 }
 
 // Complete strategy in local storage
@@ -63,7 +116,8 @@ export interface Strategy {
 export interface StrategyPayload {
   name: string;
   description: string;
-  steps: Step[];
+  steps?: Step[];
+  graph?: ExecutionGraph;
   nodes?: PipelineNode[];
   edges?: PipelineEdge[];
 }
@@ -73,11 +127,24 @@ export interface StrategyResponse {
   id: string;
   name: string;
   description: string;
-  steps: Step[];
+  steps?: Step[];
+  graph?: ExecutionGraph;
   nodes?: PipelineNode[];
   edges?: PipelineEdge[];
   created_at: string;
   updated_at: string;
+}
+
+// Compiled strategy without input data (used for preview/publish)
+export type CompiledPlan =
+  | { steps: Step[]; graph?: never }
+  | { steps?: never; graph: ExecutionGraph };
+
+// Execution request payload
+export interface ExecutionRequest {
+  data: Record<string, any>[];
+  steps?: Step[];
+  graph?: ExecutionGraph;
 }
 
 // Execution result from backend

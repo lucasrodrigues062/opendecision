@@ -1,18 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import { api } from '../../utils/api';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardContent } from '@/components/ui/card';
-import { FolderOpen, AlertCircle, Clock } from 'lucide-react';
+import { Modal, List, Card, Button, Spin, Alert, Typography } from 'antd';
+import { FolderOpenOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import type { StrategyResponse } from '../../types';
+
+const { Text } = Typography;
 
 interface Props {
   isOpen: boolean;
@@ -60,61 +53,69 @@ export default function OpenModal({ isOpen, onClose }: Props) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh]">
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
-              <FolderOpen className="w-4 h-4 text-primary" />
-            </div>
-            <DialogTitle>Open Strategy</DialogTitle>
-          </div>
-        </DialogHeader>
+    <Modal
+      open={isOpen}
+      onCancel={onClose}
+      title={
+        <span className="flex items-center gap-2">
+          <FolderOpenOutlined className="text-blue-500" />
+          Open Strategy
+        </span>
+      }
+      footer={[
+        <Button key="close" onClick={onClose}>
+          Close
+        </Button>,
+      ]}
+    >
+      {error && (
+        <Alert
+          message={error}
+          type="error"
+          showIcon
+          className="mb-4"
+          closable
+          onClose={() => setError(null)}
+        />
+      )}
 
-        {error && (
-          <Alert className="border-destructive/30 bg-destructive/10">
-            <AlertCircle className="h-4 w-4 text-destructive" />
-            <AlertDescription className="text-destructive/90 text-sm">{error}</AlertDescription>
-          </Alert>
-        )}
-
-        <div className="max-h-[55vh] overflow-y-auto space-y-2">
-          {loading && <div className="text-center py-8 text-muted-foreground">Loading...</div>}
-
-          {!loading && strategies.length === 0 && !error && (
-            <div className="text-center py-8 text-muted-foreground">No strategies yet</div>
-          )}
-
-          {strategies.map((strategy) => (
-            <Card
-              key={strategy.id}
-              className="border-border bg-card hover:border-primary/50 cursor-pointer transition"
-              onClick={() => handleOpen(strategy)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-4">
+      {loading ? (
+        <div className="py-8 text-center">
+          <Spin tip="Loading strategies..." />
+        </div>
+      ) : (
+        <List
+          dataSource={strategies}
+          locale={{ emptyText: 'No strategies yet' }}
+          renderItem={(strategy) => (
+            <List.Item className="!px-0">
+              <Card
+                hoverable
+                size="small"
+                className="w-full bg-slate-900 border-slate-800 hover:border-blue-500/50"
+                onClick={() => handleOpen(strategy)}
+              >
+                <div className="flex justify-between items-start gap-4">
                   <div>
-                    <h4 className="font-medium text-foreground">{strategy.name}</h4>
+                    <Text strong className="text-foreground">
+                      {strategy.name}
+                    </Text>
                     {strategy.description && (
-                      <p className="text-sm text-muted-foreground mt-0.5">{strategy.description}</p>
+                      <Text type="secondary" className="block text-sm mt-0.5">
+                        {strategy.description}
+                      </Text>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                    <Clock className="w-3 h-3" />
+                  <Text type="secondary" className="text-xs flex items-center gap-1 shrink-0">
+                    <ClockCircleOutlined />
                     {new Date(strategy.created_at).toLocaleDateString()}
-                  </div>
+                  </Text>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+              </Card>
+            </List.Item>
+          )}
+        />
+      )}
+    </Modal>
   );
 }

@@ -14,7 +14,8 @@ type Pipeline struct {
 	ID          string             `json:"id" dynamodbav:"id"`
 	Name        string             `json:"name" dynamodbav:"name"`
 	Description string             `json:"description" dynamodbav:"description"`
-	Steps       []decisionlib.Step `json:"steps" dynamodbav:"steps"`
+	Steps       []decisionlib.Step `json:"steps,omitempty" dynamodbav:"steps,omitempty"`
+	Graph       *decisionlib.Graph `json:"graph,omitempty" dynamodbav:"graph,omitempty"`
 	Nodes       json.RawMessage    `json:"nodes,omitempty" dynamodbav:"nodes,omitempty"`
 	Edges       json.RawMessage    `json:"edges,omitempty" dynamodbav:"edges,omitempty"`
 	CreatedAt   time.Time          `json:"created_at" dynamodbav:"created_at"`

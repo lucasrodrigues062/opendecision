@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import type { PipelineNode, PipelineEdge, Strategy, Step } from '../types';
+import type { PipelineNode, PipelineEdge, Strategy, OperationType, CompiledPlan } from '../types';
 import { compileStrategy } from '../utils/compiler';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -19,15 +19,25 @@ interface StrategyStore {
   loadStrategy: (strategy: Strategy) => void;
   updateStrategy: (name: string, description: string) => void;
   markPublished: (backendId: string) => void;
-  addNode: (type: 'filter' | 'compute' | 'sort', position: { x: number; y: number }) => void;
+  addNode: (type: OperationType, position: { x: number; y: number }) => void;
   updateNode: (id: string, data: any) => void;
   deleteNode: (id: string) => void;
   selectNode: (id: string | null) => void;
   setEdges: (edges: PipelineEdge[]) => void;
   setNodes: (nodes: PipelineNode[]) => void;
-  getCompiledSteps: () => Step[];
+  getCompiledSteps: () => CompiledPlan;
   resetStrategy: () => void;
 }
+
+const nodeLabels: Record<OperationType, string> = {
+  filter: 'Filter',
+  compute: 'Compute',
+  sort: 'Sort',
+  sort_array: 'Sort Array',
+  filter_array: 'Filter Array',
+  delete_property: 'Delete Property',
+  condition: 'Condition',
+};
 
 export const useStrategyStore = create<StrategyStore>()(
   devtools(
@@ -86,7 +96,7 @@ export const useStrategyStore = create<StrategyStore>()(
           });
         },
 
-        addNode: (type: 'filter' | 'compute' | 'sort', position: { x: number; y: number }) => {
+        addNode: (type: OperationType, position: { x: number; y: number }) => {
           const { nodes } = get();
           const id = `${type}_${Date.now()}`;
 
@@ -95,7 +105,7 @@ export const useStrategyStore = create<StrategyStore>()(
             type,
             position,
             data: {
-              label: type.charAt(0).toUpperCase() + type.slice(1),
+              label: nodeLabels[type],
             },
           };
 

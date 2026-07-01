@@ -5,7 +5,7 @@ import (
 	"embed"
 	"io/fs"
 	"net/http"
-	"path"
+	"strings"
 )
 
 // content holds the static web assets produced by Vite.
@@ -31,9 +31,13 @@ func Handler() (http.Handler, error) {
 	fileServer := http.FileServer(http.FS(root))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cleanPath := path.Clean(r.URL.Path)
+		// fs.FS paths must not start with "/".
+		filePath := strings.TrimPrefix(r.URL.Path, "/")
+		if filePath == "" {
+			filePath = "."
+		}
 
-		file, err := root.Open(cleanPath)
+		file, err := root.Open(filePath)
 		if err != nil {
 			r.URL.Path = "/"
 			fileServer.ServeHTTP(w, r)

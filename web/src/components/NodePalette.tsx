@@ -1,69 +1,117 @@
 import { useStrategyStore } from '../stores/strategyStore';
-import { Filter, Calculator, ArrowUpDown } from 'lucide-react';
+import { Card, Space, Typography } from 'antd';
+import {
+  FilterOutlined,
+  CalculatorOutlined,
+  SortAscendingOutlined,
+  SortAscendingOutlined as SortArrayIcon,
+  FilterOutlined as FilterArrayIcon,
+  MinusCircleOutlined,
+  ForkOutlined,
+} from '@ant-design/icons';
+import type { OperationType } from '../types';
 
-const operations = [
+const { Text } = Typography;
+
+type OperationConfig = {
+  type: OperationType;
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+};
+
+const operations: OperationConfig[] = [
   {
-    type: 'filter' as const,
+    type: 'filter',
     title: 'Filter',
     description: 'Keep only rows that match a condition.',
-    icon: Filter,
-    color: 'text-blue-400 bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20',
+    icon: FilterOutlined,
+    color: 'text-blue-400 border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/10',
   },
   {
-    type: 'compute' as const,
+    type: 'compute',
     title: 'Compute',
     description: 'Create or update a property on each row.',
-    icon: Calculator,
-    color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20',
+    icon: CalculatorOutlined,
+    color: 'text-emerald-400 border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10',
   },
   {
-    type: 'sort' as const,
+    type: 'sort',
     title: 'Sort',
     description: 'Order rows by a property ascending or descending.',
-    icon: ArrowUpDown,
-    color: 'text-purple-400 bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20',
+    icon: SortAscendingOutlined,
+    color: 'text-purple-400 border-purple-500/30 hover:border-purple-500 hover:bg-purple-500/10',
+  },
+  {
+    type: 'sort_array',
+    title: 'Sort Array',
+    description: 'Sort a nested array inside each row.',
+    icon: SortArrayIcon,
+    color: 'text-orange-400 border-orange-500/30 hover:border-orange-500 hover:bg-orange-500/10',
+  },
+  {
+    type: 'filter_array',
+    title: 'Filter Array',
+    description: 'Filter a nested array inside each row.',
+    icon: FilterArrayIcon,
+    color: 'text-cyan-400 border-cyan-500/30 hover:border-cyan-500 hover:bg-cyan-500/10',
+  },
+  {
+    type: 'delete_property',
+    title: 'Delete Property',
+    description: 'Remove a property from each row.',
+    icon: MinusCircleOutlined,
+    color: 'text-red-400 border-red-500/30 hover:border-red-500 hover:bg-red-500/10',
+  },
+  {
+    type: 'condition',
+    title: 'Condition',
+    description: 'Branch execution into true/false paths.',
+    icon: ForkOutlined,
+    color: 'text-yellow-400 border-yellow-500/30 hover:border-yellow-500 hover:bg-yellow-500/10',
   },
 ];
 
 export default function NodePalette() {
   const { addNode, nodes } = useStrategyStore();
 
-  const handleAdd = (type: 'filter' | 'compute' | 'sort') => {
+  const handleAdd = (type: OperationType) => {
     const offset = nodes.length * 20;
     addNode(type, { x: 300 + offset, y: 200 + offset });
   };
 
   return (
-    <div className="space-y-3">
+    <Space direction="vertical" size="middle" className="w-full p-4">
       {operations.map((op) => {
         const Icon = op.icon;
         return (
-          <button
+          <Card
             key={op.type}
+            hoverable
+            size="small"
             onClick={() => handleAdd(op.type)}
-            className={`w-full text-left p-3 rounded-lg border transition group ${op.color}`}
+            className={`border ${op.color} bg-slate-900 transition-all`}
           >
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5">
-                <Icon className="w-5 h-5" />
-              </div>
+            <Space align="start">
+              <Icon className="text-lg mt-0.5" />
               <div>
-                <h4 className="text-sm font-semibold text-foreground group-hover:text-foreground">
+                <Text strong className="text-foreground">
                   {op.title}
-                </h4>
-                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                </Text>
+                <Text type="secondary" className="block text-xs leading-relaxed">
                   {op.description}
-                </p>
+                </Text>
               </div>
-            </div>
-          </button>
+            </Space>
+          </Card>
         );
       })}
 
-      <div className="pt-2 text-xs text-muted-foreground leading-relaxed">
-        Click an operation to add it to the canvas. Connect nodes top-to-bottom to define the
-        execution order.
-      </div>
-    </div>
+      <Text type="secondary" className="text-xs leading-relaxed">
+        Click an operation to add it to the canvas. Connect nodes to define the execution order.
+        Use Condition to branch into true/false paths.
+      </Text>
+    </Space>
   );
 }

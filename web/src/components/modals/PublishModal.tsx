@@ -1,17 +1,10 @@
 import { useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import { api } from '../../utils/api';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardContent } from '@/components/ui/card';
-import { Rocket, AlertCircle } from 'lucide-react';
+import { Modal, Card, Button, Alert, Space, Typography, Spin } from 'antd';
+import { RocketOutlined, AlertOutlined } from '@ant-design/icons';
+
+const { Text } = Typography;
 
 interface Props {
   isOpen: boolean;
@@ -31,11 +24,12 @@ export default function PublishModal({ isOpen, onClose, onSuccess }: Props) {
     setError(null);
 
     try {
-      const steps = getCompiledSteps();
+      const compiled = getCompiledSteps();
       const payload = {
         name: strategy.name,
         description: strategy.description,
-        steps,
+        ...('steps' in compiled ? { steps: compiled.steps } : {}),
+        ...('graph' in compiled ? { graph: compiled.graph } : {}),
         nodes,
         edges,
       };
@@ -57,58 +51,60 @@ export default function PublishModal({ isOpen, onClose, onSuccess }: Props) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-md bg-emerald-500/10 flex items-center justify-center">
-              <Rocket className="w-4 h-4 text-emerald-500" />
+    <Modal
+      open={isOpen}
+      onCancel={onClose}
+      title={
+        <span className="flex items-center gap-2">
+          <RocketOutlined className="text-emerald-500" />
+          Publish Strategy
+        </span>
+      }
+      footer={[
+        <Button key="cancel" onClick={onClose} disabled={loading}>
+          Cancel
+        </Button>,
+        <Button
+          key="publish"
+          type="primary"
+          loading={loading}
+          onClick={handlePublish}
+          className="bg-emerald-600 hover:bg-emerald-700"
+        >
+          {strategy?.backendId ? 'Update' : 'Publish'}
+        </Button>,
+      ]}
+    >
+      <Spin spinning={loading}>
+        <Card size="small" className="bg-slate-900 border-slate-800 mb-4">
+          <Space direction="vertical" className="w-full">
+            <div className="flex justify-between">
+              <Text type="secondary">Name</Text>
+              <Text strong className="text-right">
+                {strategy?.name}
+              </Text>
             </div>
-            <DialogTitle>Publish Strategy</DialogTitle>
-          </div>
-        </DialogHeader>
-
-        <Card className="border-border bg-card">
-          <CardContent className="space-y-3 pt-6">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Name</span>
-              <span className="font-medium text-foreground text-right">{strategy?.name}</span>
+            <div className="flex justify-between">
+              <Text type="secondary">Description</Text>
+              <Text className="text-right">{strategy?.description || '(none)'}</Text>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Description</span>
-              <span className="text-foreground text-right">
-                {strategy?.description || '(none)'}
-              </span>
+            <div className="flex justify-between">
+              <Text type="secondary">Status</Text>
+              <Text>{strategy?.backendId ? 'Update existing' : 'Create new'}</Text>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Status</span>
-              <span className="text-foreground">
-                {strategy?.backendId ? 'Update existing' : 'Create new'}
-              </span>
-            </div>
-          </CardContent>
+          </Space>
         </Card>
 
         {error && (
-          <Alert className="border-destructive/30 bg-destructive/10">
-            <AlertCircle className="h-4 w-4 text-destructive" />
-            <AlertDescription className="text-destructive/90 text-sm">{error}</AlertDescription>
-          </Alert>
+          <Alert
+            message={error}
+            type="error"
+            showIcon
+            icon={<AlertOutlined />}
+            className="mb-0"
+          />
         )}
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handlePublish}
-            disabled={loading}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-          >
-            {loading ? 'Publishing...' : strategy?.backendId ? 'Update' : 'Publish'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </Spin>
+    </Modal>
   );
 }
