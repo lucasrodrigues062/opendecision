@@ -31,7 +31,7 @@ export default function CreateStrategyModal({ isOpen, onClose }: Props) {
       onCancel={onClose}
       title={
         <span className="flex items-center gap-2">
-          <PlusOutlined className="text-blue-500" />
+          <PlusOutlined className="text-indigo-400" />
           Create New Strategy
         </span>
       }

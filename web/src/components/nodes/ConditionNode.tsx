@@ -1,5 +1,5 @@
 import { Handle, Position } from '@xyflow/react';
-import { Card, Input, Button, Space, Typography, Tag } from 'antd';
+import { Card, Input, Button, Space, Typography, Tag, Select } from 'antd';
 import { ForkOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useStrategyStore } from '../../stores/strategyStore';
 
@@ -10,6 +10,7 @@ interface Props {
   data: {
     label: string;
     conditionExpression?: string;
+    conditionMode?: 'global' | 'per_row';
   };
 }
 
@@ -21,7 +22,7 @@ export default function ConditionNode({ id, data }: Props) {
     <Card
       size="small"
       onClick={() => selectNode(id)}
-      className="w-60 shadow-lg cursor-pointer border-yellow-500/30 bg-slate-900"
+      className="w-60 shadow-lg cursor-pointer border-yellow-500/30 bg-gradient-to-b from-yellow-500/5 to-slate-900"
       styles={{ body: { padding: 12 } }}
       title={
         <Space className="text-yellow-400">
@@ -61,6 +62,22 @@ export default function ConditionNode({ id, data }: Props) {
             Condition expression is required
           </Text>
         )}
+        <div>
+          <Text type="secondary" className="text-xs">
+            Evaluation Mode
+          </Text>
+          <Select
+            size="small"
+            value={data.conditionMode || 'global'}
+            onChange={(value) => updateNode(id, { ...data, conditionMode: value })}
+            onClick={(e) => e.stopPropagation()}
+            options={[
+              { value: 'global', label: 'Global (one branch for all rows)' },
+              { value: 'per_row', label: 'Per Row (each row chooses its branch)' },
+            ]}
+            className="w-full mt-1"
+          />
+        </div>
         <div className="flex justify-between mt-1">
           <Tag color="success">true</Tag>
           <Tag color="error">false</Tag>

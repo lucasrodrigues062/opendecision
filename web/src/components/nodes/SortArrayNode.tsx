@@ -23,7 +23,7 @@ export default function SortArrayNode({ id, data }: Props) {
     <Card
       size="small"
       onClick={() => selectNode(id)}
-      className="w-56 shadow-lg cursor-pointer border-orange-500/30 bg-slate-900"
+      className="w-56 shadow-lg cursor-pointer border-orange-500/30 bg-gradient-to-b from-orange-500/5 to-slate-900"
       styles={{ body: { padding: 12 } }}
       title={
         <Space className="text-orange-400">

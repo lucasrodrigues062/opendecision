@@ -35,6 +35,11 @@ type GraphNode struct {
 	// Expression is the boolean expression for condition nodes.
 	// Ignored for other node types.
 	Expression string `json:"expression,omitempty"`
+
+	// Mode controls how condition nodes evaluate the dataset.
+	// "global" (default): evaluates once against the first row and picks one branch for the whole dataset.
+	// "per_row": evaluates each row individually, executes both branches, and merges results.
+	Mode string `json:"mode,omitempty"`
 }
 
 // GraphEdge represents a connection between two nodes.

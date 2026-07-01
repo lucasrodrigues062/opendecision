@@ -78,9 +78,9 @@ function App() {
 
   return (
     <Layout className="h-screen">
-      <Header className="flex items-center justify-between px-6 bg-slate-900 border-b border-slate-800 h-16">
+      <Header className="flex items-center justify-between px-6 bg-gradient-to-r from-slate-900 to-slate-800 border-b border-slate-700 h-16">
         <Space align="center" size="middle">
-          <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
             <BranchesOutlined className="text-white text-lg" />
           </div>
           <Space align="baseline" size="small">
@@ -170,8 +170,8 @@ function App() {
               <div className="h-full flex items-center justify-center">
                 <Empty
                   image={
-                    <div className="w-20 h-20 rounded-2xl bg-blue-600/10 flex items-center justify-center mb-4">
-                      <BranchesOutlined className="text-4xl text-blue-500" />
+                    <div className="w-20 h-20 rounded-2xl bg-indigo-500/10 flex items-center justify-center mb-4">
+                      <BranchesOutlined className="text-4xl text-indigo-400" />
                     </div>
                   }
                   description={

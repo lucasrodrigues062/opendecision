@@ -21,7 +21,7 @@ export default function DeletePropertyNode({ id, data }: Props) {
     <Card
       size="small"
       onClick={() => selectNode(id)}
-      className="w-56 shadow-lg cursor-pointer border-red-500/30 bg-slate-900"
+      className="w-56 shadow-lg cursor-pointer border-red-500/30 bg-gradient-to-b from-red-500/5 to-slate-900"
       styles={{ body: { padding: 12 } }}
       title={
         <Space className="text-red-400">

@@ -104,6 +104,7 @@ function compileGraph(nodes: PipelineNode[], edges: PipelineEdge[]): ExecutionGr
         type: 'condition',
         label: node.data.label,
         expression: node.data.conditionExpression || '',
+        mode: node.data.conditionMode || 'global',
       });
     } else if (step) {
       graphNodes.push({
@@ -222,6 +223,44 @@ function nodeToStep(node: PipelineNode): Step | null {
         property: data.deleteProperty,
       };
 
+    case 'transform':
+      if (!data.transformExpression) {
+        throw new Error(`Transform node ${node.id} missing expression`);
+      }
+      return {
+        op: 'transform',
+        expression: data.transformExpression,
+      };
+
+    case 'aggregate':
+      if (!data.aggregateFunction || !data.aggregateProperty || !data.aggregateResultProperty) {
+        throw new Error(`Aggregate node ${node.id} missing function, property or result property`);
+      }
+      return {
+        op: 'aggregate',
+        agg: data.aggregateFunction,
+        property: data.aggregateProperty,
+        result_property: data.aggregateResultProperty,
+      };
+
+    case 'group_by':
+      if (!data.groupByProperty) {
+        throw new Error(`GroupBy node ${node.id} missing property`);
+      }
+      return {
+        op: 'group_by',
+        property: data.groupByProperty,
+      };
+
+    case 'distinct':
+      if (!data.distinctProperty) {
+        throw new Error(`Distinct node ${node.id} missing property`);
+      }
+      return {
+        op: 'distinct',
+        property: data.distinctProperty,
+      };
+
     case 'condition':
       // Condition nodes are handled by the graph compiler.
       return null;
@@ -287,6 +326,36 @@ export function validateStep(step: Step): { valid: boolean; error?: string } {
     case 'delete_property':
       if (!step.property) {
         return { valid: false, error: 'Property to delete is required' };
+      }
+      return { valid: true };
+
+    case 'transform':
+      if (!step.expression) {
+        return { valid: false, error: 'Transform expression is required' };
+      }
+      return { valid: true };
+
+    case 'aggregate':
+      if (!step.agg) {
+        return { valid: false, error: 'Aggregate function is required' };
+      }
+      if (!step.property) {
+        return { valid: false, error: 'Aggregate property is required' };
+      }
+      if (!step.result_property) {
+        return { valid: false, error: 'Aggregate result property is required' };
+      }
+      return { valid: true };
+
+    case 'group_by':
+      if (!step.property) {
+        return { valid: false, error: 'Group by property is required' };
+      }
+      return { valid: true };
+
+    case 'distinct':
+      if (!step.property) {
+        return { valid: false, error: 'Distinct property is required' };
       }
       return { valid: true };
 

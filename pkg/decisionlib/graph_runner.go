@@ -155,6 +155,17 @@ func executeGraph(data []Row, graph Graph) ([]Row, error) {
 			if node.Expression == "" {
 				return nil, fmt.Errorf("condition node %s has no expression", node.ID)
 			}
+
+			if node.Mode == "per_row" {
+				merged, nextID, err := executeConditionPerRow(current, graph, node.ID, outgoing, nodeMap)
+				if err != nil {
+					return nil, fmt.Errorf("node %s: %w", node.ID, err)
+				}
+				current = merged
+				currentID = nextID
+				continue
+			}
+
 			port, err := evaluateCondition(current, node.Expression)
 			if err != nil {
 				return nil, fmt.Errorf("node %s: %w", node.ID, err)
@@ -177,6 +188,208 @@ func executeGraph(data []Row, graph Graph) ([]Row, error) {
 	return current, nil
 }
 
+// executeConditionPerRow splits the dataset by evaluating the condition expression
+// against each row, executes both branches, and merges the results preserving
+// the original row order.
+func executeConditionPerRow(
+	data []Row,
+	graph Graph,
+	conditionID string,
+	outgoing map[string][]GraphEdge,
+	nodeMap map[string]GraphNode,
+) ([]Row, string, error) {
+	edges := outgoing[conditionID]
+	trueNext := pickNextByPort(edges, "true")
+	falseNext := pickNextByPort(edges, "false")
+
+	if trueNext == "" || falseNext == "" {
+		return nil, "", fmt.Errorf("condition node %s must have both true and false edges", conditionID)
+	}
+
+	mergeID := findMergePoint(graph, trueNext, falseNext)
+
+	trueRows := make([]Row, 0, len(data))
+	falseRows := make([]Row, 0, len(data))
+	trueIndices := make([]int, 0, len(data))
+	falseIndices := make([]int, 0, len(data))
+
+	expr, err := NewEvaluator(nodeMap[conditionID].Expression)
+	if err != nil {
+		return nil, "", err
+	}
+
+	for i, row := range data {
+		env := make(map[string]any, len(row)+4)
+		for k, v := range row {
+			env[k] = v
+		}
+		env["_count"] = len(data)
+		env["_rows"] = data
+		env["_first"] = data[0]
+		env["_last"] = data[len(data)-1]
+
+		result, err := expr.Run(env)
+		if err != nil {
+			return nil, "", fmt.Errorf("row %d: %w", i, err)
+		}
+
+		shouldTakeTrue, ok := result.(bool)
+		if !ok {
+			return nil, "", fmt.Errorf("row %d: condition expression must return bool, got %T", i, result)
+		}
+
+		if shouldTakeTrue {
+			trueRows = append(trueRows, row)
+			trueIndices = append(trueIndices, i)
+		} else {
+			falseRows = append(falseRows, row)
+			falseIndices = append(falseIndices, i)
+		}
+	}
+
+	trueResult, err := executeSubgraph(trueRows, graph, trueNext, mergeID, outgoing, nodeMap)
+	if err != nil {
+		return nil, "", fmt.Errorf("true branch: %w", err)
+	}
+
+	falseResult, err := executeSubgraph(falseRows, graph, falseNext, mergeID, outgoing, nodeMap)
+	if err != nil {
+		return nil, "", fmt.Errorf("false branch: %w", err)
+	}
+
+	merged := make([]Row, len(data))
+	for i, idx := range trueIndices {
+		if i < len(trueResult) {
+			merged[idx] = trueResult[i]
+		} else {
+			merged[idx] = trueRows[i]
+		}
+	}
+	for i, idx := range falseIndices {
+		if i < len(falseResult) {
+			merged[idx] = falseResult[i]
+		} else {
+			merged[idx] = falseRows[i]
+		}
+	}
+
+	return merged, mergeID, nil
+}
+
+// executeSubgraph executes a graph from startID (inclusive) until stopID (exclusive)
+// or until an end node is reached.
+func executeSubgraph(
+	data []Row,
+	graph Graph,
+	startID string,
+	stopID string,
+	outgoing map[string][]GraphEdge,
+	nodeMap map[string]GraphNode,
+) ([]Row, error) {
+	currentID := startID
+	current := data
+
+	for currentID != "" && currentID != stopID {
+		node := nodeMap[currentID]
+
+		switch node.Type {
+		case GraphNodeStart:
+			// no-op
+
+		case GraphNodeEnd:
+			return current, nil
+
+		case GraphNodeOperation:
+			if node.Step == nil {
+				return nil, fmt.Errorf("operation node %s has no step", node.ID)
+			}
+			result, err := executeStep(current, *node.Step)
+			if err != nil {
+				return nil, fmt.Errorf("node %s: %w", node.ID, err)
+			}
+			current = result
+
+		case GraphNodeCondition:
+			if node.Expression == "" {
+				return nil, fmt.Errorf("condition node %s has no expression", node.ID)
+			}
+			port, err := evaluateCondition(current, node.Expression)
+			if err != nil {
+				return nil, fmt.Errorf("node %s: %w", node.ID, err)
+			}
+			nextID := pickNextByPort(outgoing[currentID], port)
+			if nextID == "" {
+				return nil, fmt.Errorf("condition node %s has no %s edge", node.ID, port)
+			}
+			currentID = nextID
+			continue
+		}
+
+		edges := outgoing[currentID]
+		if len(edges) == 0 {
+			return current, nil
+		}
+		currentID = edges[0].Target
+	}
+
+	return current, nil
+}
+
+// findMergePoint returns the first node reachable from both branch starts.
+// If no common node exists, it returns "end".
+func findMergePoint(graph Graph, branchA, branchB string) string {
+	if branchA == branchB {
+		return branchA
+	}
+
+	reachableA := reachableNodes(graph, branchA)
+	reachableB := reachableNodes(graph, branchB)
+
+	// Prefer the earliest common node in topological order.
+	seen := make(map[string]bool)
+	for _, id := range reachableA {
+		seen[id] = true
+	}
+	for _, id := range reachableB {
+		if seen[id] {
+			return id
+		}
+	}
+
+	return "end"
+}
+
+// reachableNodes returns all node IDs reachable from start in breadth-first order.
+func reachableNodes(graph Graph, start string) []string {
+	outgoing := make(map[string][]string)
+	for _, e := range graph.Edges {
+		outgoing[e.Source] = append(outgoing[e.Source], e.Target)
+	}
+
+	visited := make(map[string]bool)
+	var order []string
+	queue := []string{start}
+
+	for len(queue) > 0 {
+		id := queue[0]
+		queue = queue[1:]
+
+		if visited[id] {
+			continue
+		}
+		visited[id] = true
+		order = append(order, id)
+
+		for _, next := range outgoing[id] {
+			if !visited[next] {
+				queue = append(queue, next)
+			}
+		}
+	}
+
+	return order
+}
+
 // executeStep runs a single step against the current data.
 func executeStep(data []Row, step Step) ([]Row, error) {
 	switch step.Op {
@@ -192,14 +405,32 @@ func executeStep(data []Row, step Step) ([]Row, error) {
 		return applyFilterArray(data, step.Property, step.Expression)
 	case OpDeleteProperty:
 		return applyDeleteProperty(data, step.Property)
+
+	case OpTransform:
+		return applyTransform(data, step.Expression)
+
+	case OpAggregate:
+		return applyAggregate(data, step.Agg, step.Property, step.ResultProperty)
+
+	case OpGroupBy:
+		return applyGroupBy(data, step.Property)
+
+	case OpDistinct:
+		return applyDistinct(data, step.Property)
+
 	default:
 		return nil, ErrUnknownOp
 	}
 }
 
-// evaluateCondition evaluates a condition expression against the first row.
-// The condition is considered true if the expression evaluates to true for the
-// first row, or if there are no rows and the expression is "true".
+// evaluateCondition evaluates a condition expression against the first row,
+// while also exposing dataset metadata:
+//   - _count: number of rows in the dataset
+//   - _rows: the full dataset
+//   - _first: alias for the first row
+//   - _last: alias for the last row
+//
+// This allows global conditions like "_count > 1" or "len(_rows) > 0".
 func evaluateCondition(data []Row, expression string) (string, error) {
 	eval, err := NewEvaluator(expression)
 	if err != nil {
@@ -211,7 +442,19 @@ func evaluateCondition(data []Row, expression string) (string, error) {
 		return "false", nil
 	}
 
-	result, err := eval.Run(data[0])
+	// Build an environment that merges the first row with dataset metadata.
+	env := make(map[string]any, len(data[0])+4)
+	for k, v := range data[0] {
+		env[k] = v
+	}
+	env["_count"] = len(data)
+	env["_rows"] = data
+	env["_first"] = data[0]
+	if len(data) > 0 {
+		env["_last"] = data[len(data)-1]
+	}
+
+	result, err := eval.Run(env)
 	if err != nil {
 		return "", err
 	}

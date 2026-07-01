@@ -22,6 +22,10 @@ import SortNode from './nodes/SortNode';
 import SortArrayNode from './nodes/SortArrayNode';
 import FilterArrayNode from './nodes/FilterArrayNode';
 import DeletePropertyNode from './nodes/DeletePropertyNode';
+import TransformNode from './nodes/TransformNode';
+import AggregateNode from './nodes/AggregateNode';
+import GroupByNode from './nodes/GroupByNode';
+import DistinctNode from './nodes/DistinctNode';
 import ConditionNode from './nodes/ConditionNode';
 
 const nodeTypes = {
@@ -31,6 +35,10 @@ const nodeTypes = {
   sort_array: SortArrayNode,
   filter_array: FilterArrayNode,
   delete_property: DeletePropertyNode,
+  transform: TransformNode,
+  aggregate: AggregateNode,
+  group_by: GroupByNode,
+  distinct: DistinctNode,
   condition: ConditionNode,
 };
 
@@ -58,7 +66,7 @@ function LabeledEdge({ id, sourceX, sourceY, targetX, targetY, label, markerEnd 
               padding: '2px 8px',
               borderRadius: 4,
               fontSize: 10,
-              color: label === 'true' ? '#34d399' : '#f87171',
+              color: label === 'true' ? '#34d399' : '#fb7185',
               border: '1px solid #334155',
               pointerEvents: 'all',
             }}
@@ -156,7 +164,7 @@ export default function EditorCanvas() {
         fitViewOptions={{ padding: 0.2 }}
         attributionPosition="bottom-left"
       >
-        <Background gap={20} size={1} color="hsl(215 20% 22%)" />
+        <Background gap={20} size={1} color="hsl(220 15% 25%)" />
         <Controls />
         <MiniMap
           nodeColor={(node) => {
@@ -167,6 +175,10 @@ export default function EditorCanvas() {
               sort_array: '#f97316',
               filter_array: '#06b6d4',
               delete_property: '#ef4444',
+              transform: '#6366f1',
+              aggregate: '#ec4899',
+              group_by: '#84cc16',
+              distinct: '#14b8a6',
               condition: '#eab308',
             };
             return colors[node.type || ''] || '#64748b';

@@ -27,6 +27,18 @@ const (
 
 	// OpDeleteProperty removes a property from each row.
 	OpDeleteProperty Op = "delete_property"
+
+	// OpTransform applies a JSONata expression to each row for arbitrary transformations.
+	OpTransform Op = "transform"
+
+	// OpAggregate computes a single value over the dataset (sum, avg, count, min, max).
+	OpAggregate Op = "aggregate"
+
+	// OpGroupBy groups rows by a property value.
+	OpGroupBy Op = "group_by"
+
+	// OpDistinct removes duplicate rows based on a property value.
+	OpDistinct Op = "distinct"
 )
 
 // Step represents a single operation in the pipeline.
@@ -53,6 +65,13 @@ type Step struct {
 	// SortBy specifies the property inside a nested array to sort by.
 	// Used only by sort_array operations.
 	SortBy string `json:"sort_by,omitempty"`
+
+	// Agg specifies the aggregate function for aggregate operations.
+	// Valid values: "sum", "avg", "count", "min", "max".
+	Agg string `json:"agg,omitempty"`
+
+	// ResultProperty is the target property for aggregate results.
+	ResultProperty string `json:"result_property,omitempty"`
 }
 
 // PipelineAST is the abstract syntax tree representing a sequence of operations.

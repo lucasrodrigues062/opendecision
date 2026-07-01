@@ -13,6 +13,10 @@ import "fmt"
 //   - sort_array: sort a nested array inside each item
 //   - filter_array: filter a nested array inside each item
 //   - delete_property: remove a property from each item
+//   - transform: apply a JSONata expression to each item
+//   - aggregate: compute sum/avg/count/min/max over the dataset
+//   - group_by: group items by a property value
+//   - distinct: remove duplicates based on a property value
 //
 // Example:
 //
@@ -69,6 +73,18 @@ func Run(data []Row, ast PipelineAST) ([]Row, error) {
 
 		case OpDeleteProperty:
 			current, err = applyDeleteProperty(current, step.Property)
+
+		case OpTransform:
+			current, err = applyTransform(current, step.Expression)
+
+		case OpAggregate:
+			current, err = applyAggregate(current, step.Agg, step.Property, step.ResultProperty)
+
+		case OpGroupBy:
+			current, err = applyGroupBy(current, step.Property)
+
+		case OpDistinct:
+			current, err = applyDistinct(current, step.Property)
 
 		default:
 			err = ErrUnknownOp
@@ -137,6 +153,33 @@ func validateStep(step Step) error {
 	case OpDeleteProperty:
 		if step.Property == "" {
 			return fmt.Errorf("delete_property requires non-empty property")
+		}
+		return nil
+
+	case OpTransform:
+		if step.Expression == "" {
+			return fmt.Errorf("transform requires non-empty expression")
+		}
+		return nil
+
+	case OpAggregate:
+		if step.Agg == "" {
+			return fmt.Errorf("aggregate requires non-empty agg")
+		}
+		if step.ResultProperty == "" {
+			return fmt.Errorf("aggregate requires non-empty result_property")
+		}
+		return nil
+
+	case OpGroupBy:
+		if step.Property == "" {
+			return fmt.Errorf("group_by requires non-empty property")
+		}
+		return nil
+
+	case OpDistinct:
+		if step.Property == "" {
+			return fmt.Errorf("distinct requires non-empty property")
 		}
 		return nil
 

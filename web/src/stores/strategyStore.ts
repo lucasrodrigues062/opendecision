@@ -36,6 +36,10 @@ const nodeLabels: Record<OperationType, string> = {
   sort_array: 'Sort Array',
   filter_array: 'Filter Array',
   delete_property: 'Delete Property',
+  transform: 'Transform',
+  aggregate: 'Aggregate',
+  group_by: 'Group By',
+  distinct: 'Distinct',
   condition: 'Condition',
 };
 

@@ -73,7 +73,7 @@ export default function TestModal({ isOpen, onClose }: Props) {
       width={800}
       title={
         <span className="flex items-center gap-2">
-          <ExperimentOutlined className="text-blue-500" />
+          <ExperimentOutlined className="text-indigo-400" />
           Test Strategy
         </span>
       }

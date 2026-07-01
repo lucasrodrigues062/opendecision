@@ -6,6 +6,10 @@ export type OperationType =
   | 'sort_array'
   | 'filter_array'
   | 'delete_property'
+  | 'transform'
+  | 'aggregate'
+  | 'group_by'
+  | 'distinct'
   | 'condition';
 
 // Direction for sort operations
@@ -15,10 +19,12 @@ export type SortDirection = 'asc' | 'desc';
 // Fields use snake_case to match the Go backend JSON tags.
 export interface Step {
   op: OperationType;
-  expression?: string; // for filter, compute and filter_array
-  property?: string; // for compute, sort, sort_array, filter_array, delete_property
+  expression?: string; // for filter, compute, filter_array and transform
+  property?: string; // for compute, sort, sort_array, filter_array, delete_property, group_by, distinct
   sort_by?: string; // for sort_array
   direction?: SortDirection; // for sort and sort_array
+  agg?: 'sum' | 'avg' | 'count' | 'min' | 'max'; // for aggregate
+  result_property?: string; // for aggregate
 }
 
 // Graph node types (matching decisionlib backend)
@@ -31,6 +37,7 @@ export interface GraphNode {
   label?: string;
   step?: Step;
   expression?: string; // for condition nodes
+  mode?: 'global' | 'per_row'; // for condition nodes
 }
 
 // An edge in the execution graph
@@ -76,8 +83,23 @@ export interface NodeData {
   // Delete property specific
   deleteProperty?: string;
 
+  // Transform specific
+  transformExpression?: string;
+
+  // Aggregate specific
+  aggregateFunction?: 'sum' | 'avg' | 'count' | 'min' | 'max';
+  aggregateProperty?: string;
+  aggregateResultProperty?: string;
+
+  // Group by specific
+  groupByProperty?: string;
+
+  // Distinct specific
+  distinctProperty?: string;
+
   // Condition specific
   conditionExpression?: string;
+  conditionMode?: 'global' | 'per_row';
 
   // UI state
   isValid?: boolean;

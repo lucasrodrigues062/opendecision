@@ -58,7 +58,7 @@ export default function OpenModal({ isOpen, onClose }: Props) {
       onCancel={onClose}
       title={
         <span className="flex items-center gap-2">
-          <FolderOpenOutlined className="text-blue-500" />
+          <FolderOpenOutlined className="text-indigo-400" />
           Open Strategy
         </span>
       }
@@ -92,7 +92,7 @@ export default function OpenModal({ isOpen, onClose }: Props) {
               <Card
                 hoverable
                 size="small"
-                className="w-full bg-slate-900 border-slate-800 hover:border-blue-500/50"
+                className="w-full bg-slate-900 border-slate-800 hover:border-indigo-500/50"
                 onClick={() => handleOpen(strategy)}
               >
                 <div className="flex justify-between items-start gap-4">

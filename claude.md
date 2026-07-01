@@ -78,8 +78,10 @@ O motor foi expandido para suportar execução baseada em grafos, mantendo o fas
 - `Graph`, `GraphNode`, `GraphEdge` em `pkg/decisionlib/graph.go`
 - Executor de grafo `RunGraph` com fast path para grafos lineares
 - Validação de grafos (ciclos, nós órfãos, portas)
-- Nó condicional (`condition`) com branches `true`/`false`
+- Nó condicional (`condition`) com branches `true`/`false` e modos `global`/`per_row`
 - Operações aninhadas: `sort_array`, `filter_array`, `delete_property`
+- Operação `transform` com JSONata para transformações arbitrárias
+- Operações de agregação: `aggregate`, `group_by`, `distinct`
 - `internal/executor` suporta `steps` ou `graph`
 - Handlers HTTP (`/execute` e `/pipelines/{id}/execute`) aceitam steps ou graph
 - Persistência de pipelines salva `steps` ou `graph`, além de `nodes`/`edges` visuais
@@ -95,7 +97,7 @@ O motor foi expandido para suportar execução baseada em grafos, mantendo o fas
 **Frontend (`web/`):**
 - React 19 + TypeScript + Vite 8 + Tailwind CSS 4 + Ant Design.
 - Editor visual com React Flow.
-- Nós disponíveis: `filter`, `compute`, `sort`, `sort_array`, `filter_array`, `delete_property`, `condition`.
+- Nós disponíveis: `filter`, `compute`, `sort`, `sort_array`, `filter_array`, `delete_property`, `transform`, `aggregate`, `group_by`, `distinct`, `condition`.
 - Edges rotuladas automaticamente para branches `true`/`false` do nó condition.
 - Sidebar com abas Operations/Preview.
 - Publicação correta de novas estratégias (POST) e atualizações (PUT).
@@ -150,7 +152,11 @@ result, err := decisionlib.Run(data, pipeline)
 - **Sort Array:** Ordena array aninhado dentro de cada item
 - **Filter Array:** Filtra array aninhado dentro de cada item
 - **Delete Property:** Remove propriedade (com dot notation)
-- **Condition:** Branching condicional em grafos
+- **Condition:** Branching condicional em grafos. Modos `global` (uma decisão para todo o dataset) ou `per_row` (cada row escolhe seu branch, com merge automático). O contexto da expressão inclui a row atual e as variáveis `_count`, `_rows`, `_first` e `_last`.
+- **Transform:** Aplica uma expressão JSONata a cada row para transformações arbitrárias.
+- **Aggregate:** Calcula `sum`, `avg`, `count`, `min` ou `max` sobre o dataset.
+- **Group By:** Agrupa rows por uma propriedade.
+- **Distinct:** Remove duplicatas com base em uma propriedade.
 
 **Frontend:**
 - Componentes do Ant Design
@@ -160,9 +166,10 @@ result, err := decisionlib.Run(data, pipeline)
 
 ### 🔮 Próximos Passos
 
-1. **Condition por row:** permitir que nós condition avaliem cada row individualmente e depois façam merge dos resultados (atualmente o branch é decidido pela primeira row).
-2. **PostgreSQL:** implementar `PipelineStore` para PostgreSQL.
-3. **Redis:** implementar `Cache` real com Redis.
-4. **Autenticação/Autorização:** proteger endpoints de pipeline.
-5. **Versionamento:** taggear `pkg/decisionlib` como v1.x após estabilização final.
-6. **CI/CD:** pipeline de build do frontend + Go em um único binário.
+1. **Sub-pipelines:** permitir que um nó execute outra strategy salva.
+2. **Script sandbox:** nó `script` com JS puro em VM segura para casos extremos.
+3. **PostgreSQL:** implementar `PipelineStore` para PostgreSQL.
+4. **Redis:** implementar `Cache` real com Redis.
+5. **Autenticação/Autorização:** proteger endpoints de pipeline.
+6. **Versionamento:** taggear `pkg/decisionlib` como v1.x após estabilização final.
+7. **CI/CD:** pipeline de build do frontend + Go em um único binário.
