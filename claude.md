@@ -5,52 +5,97 @@ Você atuará como um Staff Engineer especializado em Golang e sistemas distribu
 A arquitetura permitirá que regras complexas de priorização geradas por um front-end visual sejam executadas em milissegundos sobre arrays de dados dinâmicos.
 
 ## 2. Estratégia de Desenvolvimento (Faseamento)
-O projeto será desenvolvido em duas fases estritas para garantir desacoplamento absoluto:
-* **Fase 1 (Atual): O Core (Package `decisionlib`).** Uma biblioteca Go pura, sem dependências de HTTP, Redis ou DB. Ela recebe um slice dinâmico (`[]map[string]any`) e uma Árvore Sintática (AST) de execução, aplica filtros, cálculos e ordenação, retornando o payload mutado.
-* **Fase 2 (Futuro): A Infraestrutura (`cmd/server`).** O servidor HTTP, integração com Redis/PostgreSQL e orquestração de I/O de rede via Goroutines (para nós de enriquecimento HTTP).
+O projeto é desenvolvido em fases com desacoplamento absoluto:
+* **Fase 1 (Concluída): O Core (Package `decisionlib`).** Biblioteca Go pura que recebe um slice dinâmico (`[]map[string]any`) e uma AST de execução, aplicando filtros, cálculos e ordenação.
+* **Fase 2 (Em andamento): A Infraestrutura (`cmd/opendecision`).** Servidor HTTP REST, persistência (memory/DynamoDB), cache (memory/Redis) e frontend React embedado no binário Go.
 
-## 3. Requisitos da Fase 1 (O Motor de Avaliação)
-* **Linguagem:** Go 1.21+.
-* **Engine de Expressões:** Utilizar a biblioteca `antonmedv/expr` como motor base para avaliar lógicas dinâmicas com segurança (sem eval inseguro).
-* **Tipagem Dinâmica:** Como o motor lida com payloads JSON arbitrários, o pacote deve manipular eficientemente abstrações como `map[string]any`, implementando asserções de tipo (*type assertions*) seguras para evitar *panics*.
-* **Contrato de Operações:** A biblioteca deve suportar um *Pipeline Runner* que itere sobre os passos:
-    * `filter`: Remove itens do array se a expressão for falsa.
-    * `compute`: Cria/altera uma propriedade no objeto do array baseado numa equação matemática.
-    * `sort`: Ordena o array baseado em propriedades dinâmicas.
+## 3. Componentes do Sistema
+
+### 3.1 Motor de Avaliação (`pkg/decisionlib`)
+* **Linguagem:** Go 1.25+.
+* **Engine de Expressões:** `antonmedv/expr` para avaliar lógicas dinâmicas com segurança (sem eval inseguro).
+* **Tipagem Dinâmica:** Manipula `map[string]any` com type assertions seguras para evitar panics.
+* **Operações:** `filter`, `compute` (com dot notation), `sort`.
+
+### 3.2 Servidor HTTP (`cmd/opendecision`)
+* **Router:** `chi/v5` com middleware de logging/recovery.
+* **Endpoints:**
+  * `GET /health` — health check
+  * `POST /pipelines` — criar pipeline
+  * `GET /pipelines` — listar pipelines
+  * `GET /pipelines/{id}` — obter pipeline
+  * `PUT /pipelines/{id}` — atualizar pipeline
+  * `DELETE /pipelines/{id}` — deletar pipeline
+  * `POST /execute` — executar pipeline ad-hoc
+  * `POST /pipelines/{id}/execute` — executar pipeline salvo
+* **Persistência:** interface `PipelineStore` com implementações in-memory e DynamoDB (LocalStack).
+* **Cache:** interface `Cache` com implementação in-memory (Redis planejado).
+
+### 3.3 Frontend (`web/`)
+* **Stack:** React 19 + TypeScript + Vite 8 + Tailwind CSS 4 + shadcn/ui.
+* **Editor Visual:** React Flow para construção de pipelines com nós drag-and-drop.
+* **Estado:** Zustand com persistência no `localStorage`.
+* **Embed:** Build do Vite é copiado para `internal/static/dist` e embedado no binário Go via `//go:embed`.
 
 ## 4. Estrutura do Repositório (Monorepo Idiomático Go)
-O projeto utilizará um único repositório, mas isolando rigidamente as responsabilidades através do "Standard Go Project Layout":
-* `/pkg/decisionlib`: Conterá exclusivamente a lógica da Fase 1 (O Motor). Esta pasta deve ser tratada como um pacote de terceiros, sem conhecer nada sobre o resto do repositório.
-* `/cmd/opendecision`: Conterá o `main.go` da Fase 2, que importará localmente o `/pkg/decisionlib`.
-* Inicialmente, focaremos 100% da codificação dentro de `/pkg/decisionlib`.
+O projeto usa o "Standard Go Project Layout" com frontend na pasta `web/`:
+* `/pkg/decisionlib`: Motor puro (Fase 1). Sem conhecimento de HTTP/DB/UI.
+* `/cmd/opendecision`: Servidor HTTP, handlers e composição de dependências (Fase 2).
+* `/internal/store`: Interface e implementações de persistência (memory, DynamoDB).
+* `/internal/cache`: Interface e implementações de cache (memory, Redis futuro).
+* `/internal/executor`: Orquestração da execução de pipelines.
+* `/internal/static`: Embedd do build do frontend (`//go:embed`).
+* `/internal/config`: Carregamento de configuração via variáveis de ambiente.
+* `/web/`: Aplicação React com editor visual de pipelines.
 
 ---
 
-## 5. Status Atual (Atualizado: 2026-06-27)
+## 5. Status Atual (Atualizado: 2026-06-30)
 
 ### ✅ Fase 1: CONCLUÍDA
 
-A biblioteca `decisionlib` foi implementada completamente e testada. Entrega:
+A biblioteca `decisionlib` foi implementada completamente e testada.
 
 **Código Implementado:**
 - `types.go` — AST, Op, Step, PipelineAST, Row
 - `errors.go` — OperationError com contexto de step
 - `evaluator.go` — Wrapper seguro para `antonmedv/expr` com compilação antecipada
-- `filter.go` — Operação filter com expressões booleanas
-- `compute.go` — Operação compute com suporte a dot notation
-- `sort.go` — Operação sort com suporte a múltiplos tipos
+- `filter.go` / `compute.go` / `sort.go` — Operações do motor
 - `runner.go` — Pipeline runner com validação e execução sequencial
 
-**Testes:** 35 testes, 83.5% cobertura, todos passando
+**Testes:** Go tests passando, `pkg/decisionlib` com cobertura >80%.
 
-**Documentação:**
-- `pkg/decisionlib/README.md` — Overview e exemplos rápidos
-- `CONTRIBUTING.md` — Setup, testes, convenções de código
-- `IMPLEMENTATION_STATUS.md` — Detalhes de marcos alcançados
-- Godoc em 100% das funções/tipos públicos
-- `example.go` — 4 exemplos práticos rodando
+### ✅ Fase 2: FUNCIONAL (Servidor + Frontend Embedado)
 
-**Como Usar:**
+O servidor HTTP, persistência, cache e frontend React estão integrados e funcionando.
+
+**Backend (`cmd/opendecision`):**
+- Servidor `chi/v5` com middleware de logging/recovery.
+- CRUD completo de pipelines (`/pipelines`).
+- Execução ad-hoc (`/execute`) e por ID (`/pipelines/{id}/execute`).
+- Persistência in-memory (padrão) e DynamoDB via LocalStack.
+- Cache in-memory (Redis planejado).
+- Frontend embedado em `internal/static/dist` via `//go:embed`.
+
+**Frontend (`web/`):**
+- React 19 + TypeScript + Vite 8 + Tailwind CSS 4 + shadcn/ui.
+- Editor visual com React Flow (nós filter/compute/sort).
+- Sidebar com abas Operations/Preview.
+- Publicação correta de novas estratégias (POST) e atualizações (PUT).
+- Abertura de estratégias salvas restaura nós, arestas e layout.
+- Test modal com JSON de exemplo e execução em tempo real.
+- Visual profissional/enterprise com tema escuro.
+
+**Build Single Binary:**
+```bash
+cd web && npm run build
+cd ..
+rm -rf internal/static/dist/*
+cp -r web/dist/* internal/static/dist/
+go build -o opendecision.exe ./cmd/opendecision/
+```
+
+**Como usar via API:**
 ```go
 import "github.com/lucasrodrigues062/opendecision/pkg/decisionlib"
 
@@ -63,62 +108,38 @@ pipeline := decisionlib.PipelineAST{
     Steps: []decisionlib.Step{
         {Op: decisionlib.OpFilter, Expression: "age >= 30"},
         {Op: decisionlib.OpSort, Property: "age", Direction: "desc"},
-    },
-}
+    },}
 
 result, err := decisionlib.Run(data, pipeline)
 ```
 
-### 📋 Padrões Adotados na Fase 1
+### 📋 Padrões Adotados
 
 **Type Safety:**
-- Todas as type assertions usam `v, ok := ...` pattern
-- Panics são capturados em `defer recover()` em operações críticas
-- Erros retornam tipos específicos (`ErrExpressionFailed`, `ErrTypeMismatch`, etc)
+- Type assertions com `v, ok := ...`
+- Panics capturados em `defer recover()` em operações críticas
+- Erros tipados (`ErrExpressionFailed`, `ErrTypeMismatch`, etc.)
 
 **Expressões:**
-- Compilação antecipada com `expr.Compile()` para performance
-- Sem `eval()` — seguro para dados de usuários
-- Suporta operadores: `+`, `-`, `*`, `/`, `%`, `&&`, `||`, `!`, `>`, `<`, `>=`, `<=`, `==`, `!=`
+- Compilação antecipada com `expr.Compile()`
+- Sem `eval()` inseguro
+- Operadores aritméticos, lógicos e de comparação suportados
 
 **Operações:**
 - **Filter:** Remove itens onde expressão == false
 - **Compute:** Cria/altera propriedade com dot notation (ex: `"person.stats.score"`)
 - **Sort:** Ordena por tipo (float64, int, string, bool, nil)
 
-**Pipeline:**
-- Execução **sequencial** de steps
-- Validação antecipada de todos os steps
-- Cada erro inclui: step index, operação, mensagem detalhada
+**Frontend:**
+- Componentes reutilizáveis em `web/src/components/ui/`
+- Estado global com Zustand + persistência local
+- Ícones do Lucide (sem emojis)
+- Variáveis CSS do shadcn para consistência visual
 
-**Testes:**
-- Nomeação: `TestOperationScenario` (ex: `TestFilterComplex`)
-- Cobertura: >80%
-- Edge cases: arrays vazios, nil values, tipos mistos, erros
+### 🔮 Próximos Passos
 
-**Documentação:**
-- Função pública = comentário Godoc obrigatório
-- Exemplos nos comentários para funções principais
-- README.md em cada pacote principal
-
-### 🔮 Próximos Passos (Fase 2)
-
-**Quando começar a Fase 2:**
-1. Verifique que `/pkg/decisionlib` funciona em seu use case
-2. Abra uma issue descrevendo o servidor HTTP desejado
-3. Siga o ROADMAP.md para M2.1+
-
-**Estrutura esperada:**
-```
-cmd/opendecision/
-├── main.go
-├── handlers.go        — Handlers HTTP
-├── repository.go      — Persistência (PostgreSQL)
-├── cache.go           — Cache (Redis)
-└── orchestration.go   — Enriquecimento assíncrono
-```
-
-**Restrições mantidas:**
-- `/pkg/decisionlib` continua 100% pura (zero dependências externas exceto expr)
-- `/cmd/opendecision` importa `decisionlib` localmente
-- Sem breaking changes em `decisionlib` — versione como v1.x após release
+1. **PostgreSQL:** implementar `PipelineStore` para PostgreSQL.
+2. **Redis:** implementar `Cache` real com Redis.
+3. **Autenticação/Autorização:** proteger endpoints de pipeline.
+4. **Versionamento:** taggear `pkg/decisionlib` como v1.x após estabilização final.
+5. **CI/CD:** pipeline de build do frontend + Go em um único binário.
