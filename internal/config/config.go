@@ -27,7 +27,7 @@ type Config struct {
 	AWSSecretAccessKey string
 
 	// Cache
-	CacheBackend string        // "memory", "redis"
+	CacheBackend string // "memory", "redis"
 	CacheTTL     time.Duration
 
 	// Redis configuration (when CacheBackend == "redis")
@@ -37,17 +37,17 @@ type Config struct {
 // Load reads configuration from environment variables with sensible defaults.
 func Load() *Config {
 	return &Config{
-		Port:           getEnvInt("PORT", 8080),
-		LogLevel:       getEnv("LOG_LEVEL", "info"),
-		StoreBackend:   getEnv("STORE_BACKEND", "memory"),
-		DynamoEndpoint: getEnv("AWS_ENDPOINT_URL", ""),
-		DynamoTable:    getEnv("DYNAMO_TABLE", "pipelines"),
-		AWSRegion:      getEnv("AWS_REGION", "us-east-1"),
-		AWSAccessKeyID: getEnv("AWS_ACCESS_KEY_ID", ""),
+		Port:               getEnvInt("PORT", 8080),
+		LogLevel:           getEnv("LOG_LEVEL", "info"),
+		StoreBackend:       getEnv("STORE_BACKEND", "memory"),
+		DynamoEndpoint:     getEnv("AWS_ENDPOINT_URL", ""),
+		DynamoTable:        getEnv("DYNAMO_TABLE", "pipelines"),
+		AWSRegion:          getEnv("AWS_REGION", "us-east-1"),
+		AWSAccessKeyID:     getEnv("AWS_ACCESS_KEY_ID", ""),
 		AWSSecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY", ""),
-		CacheBackend:   getEnv("CACHE_BACKEND", "memory"),
-		CacheTTL:       time.Duration(getEnvInt("CACHE_TTL_SECONDS", 300)) * time.Second,
-		RedisURL:       getEnv("REDIS_URL", "redis://localhost:6379/0"),
+		CacheBackend:       getEnv("CACHE_BACKEND", "memory"),
+		CacheTTL:           time.Duration(getEnvInt("CACHE_TTL_SECONDS", 300)) * time.Second,
+		RedisURL:           getEnv("REDIS_URL", "redis://localhost:6379/0"),
 	}
 }
 

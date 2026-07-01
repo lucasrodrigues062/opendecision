@@ -1,51 +1,69 @@
 import { useStrategyStore } from '../stores/strategyStore';
-import { Button } from '@/components/ui/button';
 import { Filter, Calculator, ArrowUpDown } from 'lucide-react';
 
+const operations = [
+  {
+    type: 'filter' as const,
+    title: 'Filter',
+    description: 'Keep only rows that match a condition.',
+    icon: Filter,
+    color: 'text-blue-400 bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20',
+  },
+  {
+    type: 'compute' as const,
+    title: 'Compute',
+    description: 'Create or update a property on each row.',
+    icon: Calculator,
+    color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20',
+  },
+  {
+    type: 'sort' as const,
+    title: 'Sort',
+    description: 'Order rows by a property ascending or descending.',
+    icon: ArrowUpDown,
+    color: 'text-purple-400 bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20',
+  },
+];
+
 export default function NodePalette() {
-  const { addNode } = useStrategyStore();
+  const { addNode, nodes } = useStrategyStore();
 
-  const handleDragStart = (event: React.DragEvent, type: string) => {
-    event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('application/reactflow', type);
-  };
-
-  const addNodeAtCenter = (type: 'filter' | 'compute' | 'sort') => {
-    addNode(type, { x: Math.random() * 300, y: Math.random() * 300 });
+  const handleAdd = (type: 'filter' | 'compute' | 'sort') => {
+    const offset = nodes.length * 20;
+    addNode(type, { x: 300 + offset, y: 200 + offset });
   };
 
   return (
     <div className="space-y-3">
-      <Button
-        draggable
-        onDragStart={(e) => handleDragStart(e, 'filter')}
-        onClick={() => addNodeAtCenter('filter')}
-        variant="outline"
-        className="w-full bg-blue-950/30 hover:bg-blue-900/50 border-blue-700/50 text-blue-300 hover:text-blue-100 cursor-grab active:cursor-grabbing"
-      >
-        <Filter className="w-4 h-4 mr-2" />
-        Filter
-      </Button>
-      <Button
-        draggable
-        onDragStart={(e) => handleDragStart(e, 'compute')}
-        onClick={() => addNodeAtCenter('compute')}
-        variant="outline"
-        className="w-full bg-green-950/30 hover:bg-green-900/50 border-green-700/50 text-green-300 hover:text-green-100 cursor-grab active:cursor-grabbing"
-      >
-        <Calculator className="w-4 h-4 mr-2" />
-        Compute
-      </Button>
-      <Button
-        draggable
-        onDragStart={(e) => handleDragStart(e, 'sort')}
-        onClick={() => addNodeAtCenter('sort')}
-        variant="outline"
-        className="w-full bg-purple-950/30 hover:bg-purple-900/50 border-purple-700/50 text-purple-300 hover:text-purple-100 cursor-grab active:cursor-grabbing"
-      >
-        <ArrowUpDown className="w-4 h-4 mr-2" />
-        Sort
-      </Button>
+      {operations.map((op) => {
+        const Icon = op.icon;
+        return (
+          <button
+            key={op.type}
+            onClick={() => handleAdd(op.type)}
+            className={`w-full text-left p-3 rounded-lg border transition group ${op.color}`}
+          >
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5">
+                <Icon className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-foreground group-hover:text-foreground">
+                  {op.title}
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  {op.description}
+                </p>
+              </div>
+            </div>
+          </button>
+        );
+      })}
+
+      <div className="pt-2 text-xs text-muted-foreground leading-relaxed">
+        Click an operation to add it to the canvas. Connect nodes top-to-bottom to define the
+        execution order.
+      </div>
     </div>
   );
 }

@@ -12,10 +12,10 @@ import (
 //
 // Supported types for sorting:
 //
-//	- float64 (and int, which is converted internally)
-//	- string
-//	- bool (false < true)
-//	- nil values (sorted to the end)
+//   - float64 (and int, which is converted internally)
+//   - string
+//   - bool (false < true)
+//   - nil values (sorted to the end)
 //
 // Example: property="age", direction="desc" sorts by age in descending order.
 func applySort(data []Row, property string, direction string) ([]Row, error) {

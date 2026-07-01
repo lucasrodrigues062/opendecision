@@ -13,8 +13,8 @@ import (
 // ExecuteRequest is the transport-agnostic contract for pipeline execution.
 // Can be populated from HTTP JSON, SQS message, Kafka topic, etc.
 type ExecuteRequest struct {
-	Data  []map[string]any       `json:"data"`
-	Steps []decisionlib.Step     `json:"steps"`
+	Data  []map[string]any   `json:"data"`
+	Steps []decisionlib.Step `json:"steps"`
 }
 
 // ExecuteResponse is the result of pipeline execution.

@@ -18,6 +18,7 @@ interface StrategyStore {
   createNewStrategy: (name: string, description: string) => void;
   loadStrategy: (strategy: Strategy) => void;
   updateStrategy: (name: string, description: string) => void;
+  markPublished: (backendId: string) => void;
   addNode: (type: 'filter' | 'compute' | 'sort', position: { x: number; y: number }) => void;
   updateNode: (id: string, data: any) => void;
   deleteNode: (id: string) => void;
@@ -73,6 +74,16 @@ export const useStrategyStore = create<StrategyStore>()(
             updatedAt: new Date(),
           };
           set({ strategy: updated, isDirty: true });
+        },
+
+        markPublished: (backendId: string) => {
+          const { strategy } = get();
+          if (!strategy) return;
+
+          set({
+            strategy: { ...strategy, backendId, updatedAt: new Date() },
+            isDirty: false,
+          });
         },
 
         addNode: (type: 'filter' | 'compute' | 'sort', position: { x: number; y: number }) => {

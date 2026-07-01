@@ -1,9 +1,17 @@
 import { useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { Plus } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -25,42 +33,50 @@ export default function CreateStrategyModal({ isOpen, onClose }: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-900 border-slate-700">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-slate-100">Create New Strategy</DialogTitle>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+              <Plus className="w-4 h-4 text-primary" />
+            </div>
+            <DialogTitle>Create New Strategy</DialogTitle>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="name" className="text-slate-300">Strategy Name</Label>
-            <Input
-              id="name"
-              type="text"
-              placeholder="e.g., Qualify Leads"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1.5 bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500"
-            />
-          </div>
+        <Card className="border-border bg-card">
+          <CardContent className="space-y-4 pt-6">
+            <div>
+              <Label htmlFor="name">Strategy Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="e.g., Qualify Leads"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1.5"
+                autoFocus
+              />
+            </div>
 
-          <div>
-            <Label htmlFor="description" className="text-slate-300">Description (optional)</Label>
-            <textarea
-              id="description"
-              placeholder="Describe what this strategy does..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="mt-1.5 w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-blue-500 h-20 resize-none"
-            />
-          </div>
-        </div>
+            <div>
+              <Label htmlFor="description">Description (optional)</Label>
+              <textarea
+                id="description"
+                placeholder="Describe what this strategy does..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="mt-1.5 w-full px-3 py-2 bg-background border border-border rounded-md text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring h-20 resize-none text-sm"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="border-slate-600 text-slate-100">
+          <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={!name.trim()} className="bg-blue-600 hover:bg-blue-700">
-            Create
+          <Button onClick={handleCreate} disabled={!name.trim()}>
+            Create Strategy
           </Button>
         </DialogFooter>
       </DialogContent>

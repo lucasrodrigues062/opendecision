@@ -1,4 +1,4 @@
-.PHONY: help docker-up docker-down docker-logs test run
+.PHONY: help docker-up docker-down docker-logs test run build build-web
 
 help:
 	@echo "OpenDecision - Make Targets"
@@ -12,6 +12,8 @@ help:
 	@echo ""
 	@echo "Development:"
 	@echo "  make run                - Rodar servidor (requer docker-up antes)"
+	@echo "  make build              - Buildar frontend e binário Go único"
+	@echo "  make build-web          - Buildar apenas o frontend"
 	@echo "  make test               - Rodar testes"
 	@echo "  make test-unit          - Rodar apenas testes unitários"
 	@echo "  make lint               - Executar go vet"
@@ -56,6 +58,18 @@ docker-clean:
 run:
 	@echo "🏃 Rodando servidor..."
 	go run ./cmd/opendecision/
+
+build-web:
+	@echo "🌐 Building frontend..."
+	cd web && npm run build
+
+build: build-web
+	@echo "📦 Copying frontend assets for embed..."
+	@rm -rf internal/static/dist/*
+	@cp -r web/dist/* internal/static/dist/
+	@echo "🔨 Building single binary..."
+	go build -o opendecision.exe ./cmd/opendecision/
+	@echo "✅ Binary built: opendecision.exe"
 
 test:
 	@echo "🧪 Rodando testes..."

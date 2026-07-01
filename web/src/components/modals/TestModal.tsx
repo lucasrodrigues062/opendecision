@@ -1,11 +1,18 @@
 import { useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import { api } from '../../utils/api';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Zap } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Beaker, AlertCircle, Zap, Copy, Check } from 'lucide-react';
 import type { ExecutionResult } from '../../types';
 
 interface Props {
@@ -13,12 +20,19 @@ interface Props {
   onClose: () => void;
 }
 
+const SAMPLE_DATA = `[
+  { "name": "Alice", "score": 80, "active": true },
+  { "name": "Bob", "score": 60, "active": false },
+  { "name": "Carol", "score": 95, "active": true }
+]`;
+
 export default function TestModal({ isOpen, onClose }: Props) {
   const { getCompiledSteps } = useStrategyStore();
-  const [testData, setTestData] = useState('[]');
+  const [testData, setTestData] = useState(SAMPLE_DATA);
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleExecute = async () => {
     setLoading(true);
@@ -38,67 +52,98 @@ export default function TestModal({ isOpen, onClose }: Props) {
     }
   };
 
+  const handleCopy = async () => {
+    if (!result) return;
+    await navigator.clipboard.writeText(JSON.stringify(result.result, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-900 border-slate-700 max-w-2xl max-h-[90vh]">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle className="text-slate-100">Test Strategy</DialogTitle>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+              <Beaker className="w-4 h-4 text-primary" />
+            </div>
+            <DialogTitle>Test Strategy</DialogTitle>
+          </div>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Input */}
-          <div>
-            <Label htmlFor="testData" className="text-slate-300 mb-2 block">Test Data (JSON)</Label>
-            <textarea
-              id="testData"
-              value={testData}
-              onChange={(e) => setTestData(e.target.value)}
-              className="w-full h-48 px-3 py-2 bg-slate-800 border border-slate-700 rounded font-mono text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-none"
-              placeholder='[{"score": 80}, {"score": 60}]'
-            />
-          </div>
+          <Card className="border-border bg-card">
+            <CardContent className="p-4 space-y-2">
+              <Label htmlFor="testData" className="text-sm font-medium text-foreground">
+                Test Data (JSON)
+              </Label>
+              <textarea
+                id="testData"
+                value={testData}
+                onChange={(e) => setTestData(e.target.value)}
+                className="w-full h-56 px-3 py-2 bg-background border border-border rounded-md font-mono text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+              />
+            </CardContent>
+          </Card>
 
           {/* Output */}
-          <div>
-            <Label className="text-slate-300 mb-2 block">Result</Label>
-            <div className="w-full h-48 px-3 py-2 border border-slate-700 rounded bg-slate-950/50 text-slate-300 font-mono text-xs overflow-auto">
-              {result ? (
-                <pre className="whitespace-pre-wrap break-words">{JSON.stringify(result.result, null, 2)}</pre>
-              ) : (
-                <span className="text-slate-500">Run to see result...</span>
-              )}
-            </div>
-          </div>
+          <Card className="border-border bg-card">
+            <CardContent className="p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium text-foreground">Result</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopy}
+                  disabled={!result}
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 mr-1" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 mr-1" />
+                      Copy
+                    </>
+                  )}
+                </Button>
+              </div>
+              <div className="w-full h-56 px-3 py-2 border border-border rounded-md bg-background/50 font-mono text-xs overflow-auto">
+                {result ? (
+                  <pre className="whitespace-pre-wrap break-words text-foreground">
+                    {JSON.stringify(result.result, null, 2)}
+                  </pre>
+                ) : (
+                  <span className="text-muted-foreground">Run to see result...</span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {result && (
-          <div className="flex items-center gap-2 text-sm text-slate-300 bg-slate-800/50 border border-slate-700 rounded p-3">
+          <div className="flex items-center gap-2 text-sm text-foreground bg-muted/30 border border-border rounded-lg px-3 py-2">
             <Zap className="w-4 h-4 text-yellow-400" />
             Executed in {result.elapsed_ms.toFixed(2)}ms
           </div>
         )}
 
         {error && (
-          <Alert className="border-red-900/50 bg-red-950/50">
-            <AlertCircle className="h-4 w-4 text-red-500" />
-            <AlertDescription className="text-red-200">{error}</AlertDescription>
+          <Alert className="border-destructive/30 bg-destructive/10">
+            <AlertCircle className="h-4 w-4 text-destructive" />
+            <AlertDescription className="text-destructive/90 text-sm">{error}</AlertDescription>
           </Alert>
         )}
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={loading}
-            className="border-slate-600 text-slate-100"
-          >
+          <Button variant="outline" onClick={onClose} disabled={loading}>
             Close
           </Button>
-          <Button
-            onClick={handleExecute}
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
+          <Button onClick={handleExecute} disabled={loading}>
             {loading ? 'Testing...' : 'Execute'}
           </Button>
         </DialogFooter>

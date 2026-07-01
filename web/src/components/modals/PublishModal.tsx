@@ -1,10 +1,17 @@
 import { useState } from 'react';
 import { useStrategyStore } from '../../stores/strategyStore';
 import { api } from '../../utils/api';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Rocket, AlertCircle } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -13,7 +20,7 @@ interface Props {
 }
 
 export default function PublishModal({ isOpen, onClose, onSuccess }: Props) {
-  const { strategy, getCompiledSteps } = useStrategyStore();
+  const { strategy, nodes, edges, getCompiledSteps, markPublished } = useStrategyStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,19 +32,19 @@ export default function PublishModal({ isOpen, onClose, onSuccess }: Props) {
 
     try {
       const steps = getCompiledSteps();
+      const payload = {
+        name: strategy.name,
+        description: strategy.description,
+        steps,
+        nodes,
+        edges,
+      };
 
-      if (strategy.id && strategy.id.startsWith('temp_')) {
-        await api.publishStrategy({
-          name: strategy.name,
-          description: strategy.description,
-          steps,
-        });
+      if (strategy.backendId) {
+        await api.updateStrategy(strategy.backendId, payload);
       } else {
-        await api.updateStrategy(strategy.id, {
-          name: strategy.name,
-          description: strategy.description,
-          steps,
-        });
+        const response = await api.publishStrategy(payload);
+        markPublished(response.id);
       }
 
       onSuccess?.();
@@ -51,46 +58,54 @@ export default function PublishModal({ isOpen, onClose, onSuccess }: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-900 border-slate-700">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-slate-100">Publish Strategy</DialogTitle>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-md bg-emerald-500/10 flex items-center justify-center">
+              <Rocket className="w-4 h-4 text-emerald-500" />
+            </div>
+            <DialogTitle>Publish Strategy</DialogTitle>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-4 bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-          <div>
-            <p className="text-sm text-slate-300">
-              <span className="font-semibold">Name:</span> {strategy?.name}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-slate-300">
-              <span className="font-semibold">Description:</span> {strategy?.description || '(none)'}
-            </p>
-          </div>
-        </div>
+        <Card className="border-border bg-card">
+          <CardContent className="space-y-3 pt-6">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Name</span>
+              <span className="font-medium text-foreground text-right">{strategy?.name}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Description</span>
+              <span className="text-foreground text-right">
+                {strategy?.description || '(none)'}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Status</span>
+              <span className="text-foreground">
+                {strategy?.backendId ? 'Update existing' : 'Create new'}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
 
         {error && (
-          <Alert className="border-red-900/50 bg-red-950/50">
-            <AlertCircle className="h-4 w-4 text-red-500" />
-            <AlertDescription className="text-red-200">{error}</AlertDescription>
+          <Alert className="border-destructive/30 bg-destructive/10">
+            <AlertCircle className="h-4 w-4 text-destructive" />
+            <AlertDescription className="text-destructive/90 text-sm">{error}</AlertDescription>
           </Alert>
         )}
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={loading}
-            className="border-slate-600 text-slate-100"
-          >
+          <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
           <Button
             onClick={handlePublish}
             disabled={loading}
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >
-            {loading ? 'Publishing...' : 'Publish'}
+            {loading ? 'Publishing...' : strategy?.backendId ? 'Update' : 'Publish'}
           </Button>
         </DialogFooter>
       </DialogContent>

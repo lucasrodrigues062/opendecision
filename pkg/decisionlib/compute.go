@@ -13,8 +13,8 @@ import (
 func applyCompute(data []Row, property string, expression string) ([]Row, error) {
 	if property == "" {
 		return nil, &OperationError{
-			Op:  OpCompute,
-			Err: ErrInvalidProperty,
+			Op:      OpCompute,
+			Err:     ErrInvalidProperty,
 			Details: "property must not be empty",
 		}
 	}

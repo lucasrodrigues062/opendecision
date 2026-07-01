@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/lucasrodrigues062/opendecision/internal/cache"
 	"github.com/lucasrodrigues062/opendecision/internal/config"
+	"github.com/lucasrodrigues062/opendecision/internal/static"
 	"github.com/lucasrodrigues062/opendecision/internal/store"
 )
 
@@ -35,7 +36,7 @@ func NewServer(cfg *config.Config, pipelineStore store.PipelineStore, cacheBacke
 		cache:  cacheBackend,
 	}
 
-	// Register routes
+	// Register API routes first so they take precedence over the SPA fallback.
 	r.Get("/health", s.handleHealth)
 
 	// Pipeline CRUD endpoints
@@ -49,10 +50,23 @@ func NewServer(cfg *config.Config, pipelineStore store.PipelineStore, cacheBacke
 	r.Post("/pipelines/{id}/execute", s.handleExecutePipelineByID)
 	r.Post("/execute", s.handleExecuteAdHoc)
 
+	// Static SPA fallback (must be registered after API routes).
+	r.Get("/*", s.handleStatic)
+
 	return s
 }
 
 // Start begins listening on the given address.
 func (s *Server) Start(addr string) error {
 	return http.ListenAndServe(addr, s.router)
+}
+
+// handleStatic serves the embedded React SPA.
+func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {
+	handler, err := static.Handler()
+	if err != nil {
+		http.Error(w, "static assets not available", http.StatusInternalServerError)
+		return
+	}
+	handler.ServeHTTP(w, r)
 }

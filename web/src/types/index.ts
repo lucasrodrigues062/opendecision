@@ -54,6 +54,7 @@ export interface Strategy {
   description: string;
   nodes: PipelineNode[];
   edges: PipelineEdge[];
+  backendId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,6 +64,8 @@ export interface StrategyPayload {
   name: string;
   description: string;
   steps: Step[];
+  nodes?: PipelineNode[];
+  edges?: PipelineEdge[];
 }
 
 // Response from backend when getting strategy
@@ -71,6 +74,8 @@ export interface StrategyResponse {
   name: string;
   description: string;
   steps: Step[];
+  nodes?: PipelineNode[];
+  edges?: PipelineEdge[];
   created_at: string;
   updated_at: string;
 }

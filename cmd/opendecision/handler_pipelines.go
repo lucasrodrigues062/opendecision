@@ -6,13 +6,16 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/lucasrodrigues062/opendecision/internal/store"
+	"github.com/lucasrodrigues062/opendecision/pkg/decisionlib"
 )
 
 // CreatePipelineRequest is the request body for POST /pipelines.
 type CreatePipelineRequest struct {
-	Name        string                `json:"name"`
-	Description string                `json:"description"`
-	Steps       interface{}           `json:"steps"` // Will be unmarshaled by the server
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	Steps       []decisionlib.Step `json:"steps"`
+	Nodes       json.RawMessage    `json:"nodes,omitempty"`
+	Edges       json.RawMessage    `json:"edges,omitempty"`
 }
 
 // handleHealth checks server health (liveness + readiness).
@@ -37,15 +40,12 @@ func (s *Server) handleCreatePipeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse steps into the correct type
-	var steps interface{}
-	stepsJSON, _ := json.Marshal(req.Steps)
-	json.Unmarshal(stepsJSON, &steps)
-
 	pipeline := &store.Pipeline{
 		Name:        req.Name,
 		Description: req.Description,
-		Steps:       nil, // Will be properly set when we have the full type
+		Steps:       req.Steps,
+		Nodes:       req.Nodes,
+		Edges:       req.Edges,
 	}
 
 	// Try to save the pipeline
@@ -54,7 +54,6 @@ func (s *Server) handleCreatePipeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
 	writeJSON(w, http.StatusCreated, pipeline)
 }
 
@@ -117,6 +116,15 @@ func (s *Server) handleUpdatePipeline(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Description != "" {
 		pipeline.Description = req.Description
+	}
+	if req.Steps != nil {
+		pipeline.Steps = req.Steps
+	}
+	if req.Nodes != nil {
+		pipeline.Nodes = req.Nodes
+	}
+	if req.Edges != nil {
+		pipeline.Edges = req.Edges
 	}
 
 	// Save updated pipeline

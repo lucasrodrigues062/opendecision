@@ -1,7 +1,8 @@
 import type { StrategyPayload, StrategyResponse, ExecutionResult, ApiError } from '../types';
 
-// Get API base URL from env or use localhost
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+// In the embedded build the frontend and API share the same origin.
+// During local development the Vite dev server needs to proxy to the backend.
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8080' : '');
 
 class ApiClient {
   private baseURL: string;
