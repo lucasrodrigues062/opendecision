@@ -3,7 +3,6 @@ import {
   Layout,
   Button,
   Card,
-  Tabs,
   Badge,
   Alert,
   Space,
@@ -20,8 +19,7 @@ import {
 import { useStrategyStore } from './stores/strategyStore';
 import { api } from './utils/api';
 import EditorCanvas from './components/EditorCanvas';
-import NodePalette from './components/NodePalette';
-import PreviewPanel from './components/PreviewPanel';
+import Sidebar from './components/Sidebar';
 import CreateStrategyModal from './components/modals/CreateStrategyModal';
 import OpenModal from './components/modals/OpenModal';
 import PublishModal from './components/modals/PublishModal';
@@ -62,19 +60,6 @@ function App() {
     setPublishSuccess('Strategy published successfully!');
     setTimeout(() => setPublishSuccess(null), 3000);
   };
-
-  const sidebarItems = [
-    {
-      key: 'operations',
-      label: 'Operations',
-      children: <NodePalette />,
-    },
-    {
-      key: 'preview',
-      label: 'Preview',
-      children: <PreviewPanel />,
-    },
-  ];
 
   return (
     <Layout className="h-screen">
@@ -209,17 +194,7 @@ function App() {
             )}
           </Card>
 
-          <Card
-            className="w-80 shrink-0 bg-slate-900 border-slate-800"
-            bodyStyle={{ padding: 0, height: '100%' }}
-          >
-            <Tabs
-              activeKey={activeTab}
-              onChange={(key) => setActiveTab(key as SidebarTab)}
-              items={sidebarItems}
-              className="h-full ant-tabs-content"
-            />
-          </Card>
+          <Sidebar activeTab={activeTab} onChangeTab={(tab) => setActiveTab(tab)} />
         </div>
       </Content>
 
